@@ -8,6 +8,14 @@ import '../sources/source.dart';
 
 /// Resolves the provider for a grid cell, remembering recent ones so scrolling
 /// back doesn't re-download or re-request thumbnails.
+/// The grid's (cached) preview for [item]; the viewer shows it while the full
+/// image decodes, instead of a black frame.
+Future<ImageProvider?> thumbnailProvider(
+  MediaSource source,
+  MediaItem item,
+  int size,
+) => _ThumbCache.get(source, item, size);
+
 class _ThumbCache {
   static final _map = <String, Future<ImageProvider?>>{};
   static const _max = 600;

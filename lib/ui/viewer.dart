@@ -10,6 +10,7 @@ import 'package:photo_view/photo_view_gallery.dart';
 import '../core/app_state.dart';
 import '../core/models.dart';
 import '../sources/source.dart';
+import 'thumbnail.dart';
 import 'video_page.dart';
 
 /// Full-screen viewer.
@@ -81,6 +82,50 @@ class _ViewerScreenState extends State<ViewerScreen>
     _settle.dispose();
     _focus.dispose();
     super.dispose();
+  }
+
+  // Neighbours are resolved and decoded ahead, so changing photo paints the
+  // new one in the same frame instead of flashing black while it loads.
+  final _files = <String, File>{};
+  final _loading = <String, Future<File>>{};
+  int? _decodeWidth;
+
+  Future<File> _file(MediaItem item) =>
+      _loading.putIfAbsent(item.path, () async {
+        final f = item.localPath != null
+            ? File(item.localPath!)
+            : await widget.source.localFile(item);
+        _files[item.path] = f;
+        return f;
+      });
+
+  /// Decoded at screen resolution (with room to zoom), not at camera size:
+  /// a 12 MP photo decodes many times faster and uses far less memory.
+  ImageProvider _provider(File f) => ResizeImage(
+    FileImage(f),
+    width: _decodeWidth,
+    policy: ResizeImagePolicy.fit,
+  );
+
+  void _warm(int index) {
+    for (final i in [index, index + 1, index - 1, index + 2]) {
+      if (i < 0 || i >= widget.items.length) continue;
+      final item = widget.items[i];
+      if (item.isVideo) continue;
+      _file(item).then((f) {
+        if (mounted) precacheImage(_provider(f), context, onError: (_, _) {});
+      }, onError: (_) {});
+    }
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_decodeWidth == null) {
+      final mq = MediaQuery.of(context);
+      _decodeWidth = (mq.size.shortestSide * mq.devicePixelRatio * 1.5).round();
+      _warm(_index);
+    }
   }
 
   void _go(int delta) {
@@ -197,10 +242,13 @@ class _ViewerScreenState extends State<ViewerScreen>
                       backgroundDecoration: const BoxDecoration(
                         color: Colors.transparent,
                       ),
-                      onPageChanged: (i) => setState(() {
-                        _index = i;
-                        _zoomed = false;
-                      }),
+                      onPageChanged: (i) {
+                        setState(() {
+                          _index = i;
+                          _zoomed = false;
+                        });
+                        _warm(i);
+                      },
                       scaleStateChangedCallback: (s) => setState(
                         () => _zoomed = s != PhotoViewScaleState.initial,
                       ),
@@ -245,45 +293,75 @@ class _ViewerScreenState extends State<ViewerScreen>
       heroAttributes: hero,
       minScale: PhotoViewComputedScale.contained,
       maxScale: PhotoViewComputedScale.contained * 8,
-      child: _FullImage(source: widget.source, item: item),
+      child: _FullImage(
+        source: widget.source,
+        item: item,
+        ready: _files[item.path],
+        load: () => _file(item),
+        provider: _provider,
+      ),
     );
   }
 }
 
 class _FullImage extends StatefulWidget {
-  const _FullImage({required this.source, required this.item});
+  const _FullImage({
+    required this.source,
+    required this.item,
+    required this.ready,
+    required this.load,
+    required this.provider,
+  });
+
   final MediaSource source;
   final MediaItem item;
+
+  /// The file if it was already resolved ahead of time.
+  final File? ready;
+  final Future<File> Function() load;
+  final ImageProvider Function(File) provider;
 
   @override
   State<_FullImage> createState() => _FullImageState();
 }
 
 class _FullImageState extends State<_FullImage> {
-  late final Future<File> _file = widget.item.localPath != null
-      ? Future.value(File(widget.item.localPath!))
-      : widget.source.localFile(widget.item);
+  late final Future<File> _file = widget.ready != null
+      ? Future.value(widget.ready)
+      : widget.load();
 
   @override
   Widget build(BuildContext context) {
+    final ready = widget.ready;
+    if (ready != null) return _image(ready);
     return FutureBuilder<File>(
       future: _file,
       builder: (context, snap) {
         if (snap.hasError) return _error('${snap.error}');
-        if (!snap.hasData) {
-          return const Center(
-            child: CircularProgressIndicator(color: Colors.white70),
-          );
-        }
-        return Image.file(
-          snap.data!,
-          fit: BoxFit.contain,
-          filterQuality: FilterQuality.medium,
-          errorBuilder: (_, e, _) => _error('Can\'t open ${widget.item.name}'),
-        );
+        if (!snap.hasData) return _preview();
+        return _image(snap.data!);
       },
     );
   }
+
+  Widget _image(File file) => Image(
+    image: widget.provider(file),
+    fit: BoxFit.contain,
+    filterQuality: FilterQuality.medium,
+    gaplessPlayback: true,
+    // Until the full image's first frame is ready, show the grid preview.
+    frameBuilder: (_, child, frame, sync) =>
+        frame == null && !sync ? _preview() : child,
+    errorBuilder: (_, e, _) => _error('Can\'t open ${widget.item.name}'),
+  );
+
+  /// The grid thumbnail, stretched: blurry for a moment rather than black.
+  Widget _preview() => FutureBuilder<ImageProvider?>(
+    future: thumbnailProvider(widget.source, widget.item, 400),
+    builder: (_, snap) => snap.data == null
+        ? const SizedBox.expand()
+        : Image(image: snap.data!, fit: BoxFit.contain, gaplessPlayback: true),
+  );
 
   Widget _error(String text) => Center(
     child: Padding(
