@@ -144,11 +144,12 @@ void main() {
   testWidgets('tap on the bands moves between items', (tester) async {
     await open(tester);
     await tester.tapAt(const Offset(1150, 400));
-    await tester.pumpAndSettle(const Duration(milliseconds: 400));
+    await tester.pump(); // one frame: no slide, no double-tap wait
     expect(find.text('3 / 3'), findsOneWidget);
     await tester.tapAt(const Offset(50, 400));
-    await tester.pumpAndSettle(const Duration(milliseconds: 400));
+    await tester.pump(); // one frame: no slide, no double-tap wait
     expect(find.text('2 / 3'), findsOneWidget);
+    await tester.pumpAndSettle(); // let the double-tap timer expire
   });
 
   testWidgets('horizontal swipe changes item', (tester) async {

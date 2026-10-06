@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as p;
 
 import '../core/models.dart';
+import '../core/video_frames.dart';
 import 'remote_config.dart';
 import 'source.dart';
 
@@ -113,7 +114,6 @@ class SeafileSource extends RemoteSource {
   /// Server-side thumbnails save downloading full photos just for the grid.
   @override
   Future<Uint8List?> thumbnail(MediaItem item, int size) async {
-    if (item.kind == MediaKind.video) return null;
     try {
       final repo = await _repo();
       final res = await _http.get(
@@ -128,16 +128,24 @@ class SeafileSource extends RemoteSource {
     return null;
   }
 
-  @override
-  Future<void> download(String path, File target) async {
+  /// The API answers with a download link (as a JSON string).
+  Future<String> _downloadLink(String path) async {
     final repo = await _repo();
     final res = await _http.get(
       _api(repo, 'file', path),
       headers: await _headers(),
     );
     _check(res);
-    // The API answers with a one-time download link as a JSON string.
-    final link = jsonDecode(res.body) as String;
+    return jsonDecode(res.body) as String;
+  }
+
+  @override
+  Future<VideoInput?> videoInput(MediaItem item) async =>
+      VideoInput.url(await _downloadLink(item.path));
+
+  @override
+  Future<void> download(String path, File target) async {
+    final link = await _downloadLink(path);
     final dl = await _http.send(http.Request('GET', Uri.parse(link)));
     if (dl.statusCode != 200) {
       throw HttpException('Seafile download ${dl.statusCode}');

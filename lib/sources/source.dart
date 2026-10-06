@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import '../core/cache.dart';
+import '../core/video_frames.dart';
 import '../core/models.dart';
 
 abstract class MediaSource {
@@ -16,6 +17,11 @@ abstract class MediaSource {
 
   /// The full file on local disk, downloading it first if needed.
   Future<File> localFile(MediaItem item);
+
+  /// Where a video thumbnail can read [item] from, or null if it can't
+  /// without downloading the whole video.
+  Future<VideoInput?> videoInput(MediaItem item) async =>
+      item.localPath == null ? null : VideoInput.file(item.localPath!);
 
   /// Media in [path] and all its subfolders, one batch per folder as they
   /// are found (breadth first), so a grid can fill while the walk goes on.

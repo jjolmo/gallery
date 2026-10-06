@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 
 import '../core/models.dart';
+import '../core/video_frames.dart';
 import '../sources/source.dart';
 
 /// Resolves the provider for a grid cell, remembering recent ones so scrolling
@@ -37,7 +38,14 @@ class _ThumbCache {
   ) async {
     final bytes = await source.thumbnail(item, size);
     if (bytes != null) return MemoryImage(bytes);
-    if (item.isVideo) return null;
+    if (item.isVideo) {
+      final frame = await VideoFrames.instance.frame(
+        '${source.id}|${item.path}|${item.modified.millisecondsSinceEpoch}',
+        () => source.videoInput(item),
+        size,
+      );
+      return frame == null ? null : MemoryImage(frame);
+    }
     final file = await source.localFile(item);
     return ResizeImage(
       FileImage(file),

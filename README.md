@@ -26,10 +26,15 @@ It shows the media on the device and can also browse folders on **SFTP/SSH**,
   flat, this means the folder plus every album below its path.
 - **Formats:** JPEG, PNG, WebP, BMP, animated GIF, and MP4, MOV, WebM and MKV
   videos.
+- **Video thumbnails:** a frame from about a second in. Android uses the system's
+  MediaMetadataRetriever, which reads WebDAV and Seafile videos over HTTP without
+  downloading them. Linux uses `ffmpegthumbnailer` or `ffmpeg` if installed
+  (otherwise a placeholder). SFTP videos up to 40 MB are downloaded for it.
 - **Lightweight:** the arm64 APK is about 10 MB. No video engine is bundled:
   Android plays videos with the system's ExoPlayer and Linux uses the system libmpv.
 - **Full-screen viewer:**
-  - Tap the left or right band, or swipe sideways, to go to the previous or next item.
+  - Tap the left or right band to jump to the previous or next item at once, or
+    swipe sideways to slide to it.
   - Tap the center band, or swipe up or down, to close the viewer.
   - Pinch or double-tap to zoom.
   - On desktop, the mouse wheel or the arrow keys move between items, and Esc
@@ -45,6 +50,7 @@ Download the latest build from [Releases](../../releases).
 
   ```sh
   sudo apt install libmpv2        # runtime dependency for video
+  sudo apt install ffmpeg         # optional, for video thumbnails
   tar xzf gallery-linux-arm64.tar.gz
   ./gallery/gallery               # run it in place
   ./gallery/install.sh            # or install it to ~/.local with a menu entry

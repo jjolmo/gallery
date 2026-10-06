@@ -4,6 +4,7 @@ import 'package:dartssh2/dartssh2.dart';
 import 'package:path/path.dart' as p;
 
 import '../core/models.dart';
+import '../core/video_frames.dart';
 import 'remote_config.dart';
 import 'source.dart';
 
@@ -85,6 +86,17 @@ class SftpSource extends RemoteSource {
     sortNewestFirst(media);
     return Listing(folders, media);
   }
+
+  /// SFTP can't be streamed by the frame grabbers, so small videos are
+  /// downloaded (and cached for playback); big ones keep the placeholder.
+  @override
+  Future<VideoInput?> videoInput(MediaItem item) async {
+    final size = item.size;
+    if (size == null || size > _maxThumbDownload) return null;
+    return VideoInput.file((await localFile(item)).path);
+  }
+
+  static const _maxThumbDownload = 40 * 1024 * 1024;
 
   @override
   Future<void> download(String path, File target) async {

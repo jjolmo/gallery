@@ -86,25 +86,50 @@ class _ViewerScreenState extends State<ViewerScreen>
   void _go(int delta) {
     final target = _index + delta;
     if (target < 0 || target >= widget.items.length) return;
-    _pages.animateToPage(
-      target,
-      duration: const Duration(milliseconds: 250),
-      curve: Curves.easeOut,
-    );
+    // Taps, keys and the wheel jump straight there; only swipes slide.
+    _pages.jumpToPage(target);
+  }
+
+  // Side-band taps are read from raw pointer events: through the gesture
+  // arena they would wait out the double-tap-to-zoom timeout first.
+  int? _tapPointer;
+  Offset _tapDown = Offset.zero;
+  DateTime _tapTime = DateTime(0);
+
+  void _onPointerDown(PointerDownEvent e) {
+    _tapPointer = _tapPointer == null ? e.pointer : -1; // -1: multi-touch
+    // The video controls sit at the bottom, inside the left band.
+    final height = context.size?.height ?? 0;
+    if (widget.items[_index].isVideo && e.localPosition.dy > height - 110) {
+      _tapPointer = -1;
+    }
+    _tapDown = e.localPosition;
+    _tapTime = DateTime.now();
+  }
+
+  void _onPointerUp(PointerUpEvent e) {
+    final single = _tapPointer == e.pointer;
+    _tapPointer = null;
+    if (!single || _zoomed) return;
+    final quick = DateTime.now().difference(_tapTime) < kLongPressTimeout;
+    final still = (e.localPosition - _tapDown).distance < kTouchSlop;
+    final band = _band(e.localPosition.dx);
+    if (quick && still && band != 0) _go(band);
+  }
+
+  /// -1 left band, 1 right band, 0 center.
+  int _band(double dx) {
+    final x = dx / (context.size?.width ?? 1);
+    if (x < _sideBand) return -1;
+    if (x > 1 - _sideBand) return 1;
+    return 0;
   }
 
   void _close() => Navigator.of(context).maybePop();
 
   void _onTapUp(TapUpDetails d) {
-    final width = context.size?.width ?? 1;
-    final x = d.localPosition.dx / width;
-    if (x < _sideBand) {
-      _go(-1);
-    } else if (x > 1 - _sideBand) {
-      _go(1);
-    } else {
-      _close();
-    }
+    // Side bands are handled on pointer up, see [_onPointerUp].
+    if (_band(d.localPosition.dx) == 0) _close();
   }
 
   void _onDragEnd(DragEndDetails d) {
@@ -147,6 +172,9 @@ class _ViewerScreenState extends State<ViewerScreen>
         child: Stack(
           children: [
             Listener(
+              onPointerDown: _onPointerDown,
+              onPointerUp: _onPointerUp,
+              onPointerCancel: (_) => _tapPointer = null,
               onPointerSignal: (e) {
                 if (e is PointerScrollEvent && !_zoomed) {
                   _go(e.scrollDelta.dy > 0 ? 1 : -1);

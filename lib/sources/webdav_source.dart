@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:xml/xml.dart';
 
 import '../core/models.dart';
+import '../core/video_frames.dart';
 import 'remote_config.dart';
 import 'source.dart';
 
@@ -108,6 +109,11 @@ class WebDavSource extends RemoteSource {
       return DateTime.tryParse(s) ?? DateTime.fromMillisecondsSinceEpoch(0);
     }
   }
+
+  /// Thumbnails stream the video over HTTP: only the needed ranges are read.
+  @override
+  Future<VideoInput?> videoInput(MediaItem item) async =>
+      VideoInput.url(_uri(item.path).toString(), _auth);
 
   @override
   Future<void> download(String path, File target) async {
