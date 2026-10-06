@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Gallery
+Comment=Photo and video gallery
+Exec=gallery
+Icon=com.jjolmo.gallery
+Terminal=false
+Categories=Graphics;Viewer;Photography;
+MimeType=image/jpeg;image/png;image/gif;image/webp;video/mp4;
