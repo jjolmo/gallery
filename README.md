@@ -11,7 +11,10 @@ It shows the media on the device and can also browse folders on **SFTP/SSH**,
 - **Recent:** the newest photos and videos first, in a grid. The grid has 3
   columns by default; change it in *Settings* (2 to 8).
 - **Folders menu:** the side menu lists the device folders.
-  - Android: every album in MediaStore (Camera, Screenshots, Download, and so on).
+  - Android: the classic albums (Camera, Screenshots, Screen recordings, Download,
+    Pictures, Movies, WhatsApp, Telegram, Instagram). Every other folder Android
+    found media in (app caches, stickers, game data) is under a collapsed
+    *Other folders*, and stays out of *Recent*.
   - Linux: the XDG folders (Pictures, Screenshots, DCIM, Videos, Downloads, Desktop).
 - **Remote folders:** add SFTP, WebDAV or Seafile locations from the menu. They
   are listed under *Remote folders*, and you can open their subfolders. Long-press

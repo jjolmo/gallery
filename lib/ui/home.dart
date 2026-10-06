@@ -93,8 +93,20 @@ class _HomeScreenState extends State<HomeScreen> {
         tile(app.recent, Icons.schedule),
         header('Folders'),
         for (final f in app.localFolders) tile(f, Icons.folder_outlined),
-        if (app.localFolders.isEmpty)
+        if (app.localFolders.isEmpty && app.otherFolders.isEmpty)
           const ListTile(dense: true, title: Text('No media folders found')),
+        // Every other folder Android found media in; collapsed so app caches
+        // and game assets don't bury the real ones.
+        if (app.otherFolders.isNotEmpty)
+          ExpansionTile(
+            leading: const Icon(Icons.folder_copy_outlined),
+            title: Text('Other folders (${app.otherFolders.length})'),
+            shape: const Border(),
+            collapsedShape: const Border(),
+            children: [
+              for (final f in app.otherFolders) tile(f, Icons.folder_outlined),
+            ],
+          ),
         header(
           'Remote folders',
           trailing: IconButton(

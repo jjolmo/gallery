@@ -21,6 +21,9 @@ class AppState extends ChangeNotifier {
   final _remoteSources = <String, MediaSource>{};
 
   List<FolderRef> localFolders = [];
+
+  /// Device albums outside the classic set, shown collapsed in the menu.
+  List<FolderRef> otherFolders = [];
   List<RemoteConfig> remotes = [];
   bool hasMediaAccess = true;
 
@@ -78,7 +81,11 @@ class AppState extends ChangeNotifier {
       // Recent doesn't need the album list, so show it before loading albums.
       localReady = true;
       notifyListeners();
-      if (hasMediaAccess) localFolders = await android.albums();
+      if (hasMediaAccess) {
+        final albums = await android.albums();
+        localFolders = albums.classic;
+        otherFolders = albums.other;
+      }
     } else {
       localFolders = linuxDefaultFolders();
       localSource = LocalFsSource([for (final f in localFolders) f.path]);

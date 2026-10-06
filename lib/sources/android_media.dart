@@ -24,39 +24,72 @@ class AndroidMediaSource extends MediaSource {
     return state.hasAccess;
   }
 
-  /// One folder per album, the usual camera folders first. Albums aren't
-  /// counted: that is a MediaStore query per album and made startup slow.
-  Future<List<FolderRef>> albums() async {
+  /// Device albums split like a gallery app does: the classic ones (camera,
+  /// screenshots, downloads...) and everything else. MediaStore makes an album
+  /// of every folder holding an image, app caches and game assets included.
+  Future<({List<FolderRef> classic, List<FolderRef> other})> albums() async {
     final paths = await PhotoManager.getAssetPathList(
       type: RequestType.common,
       hasAll: true,
       filterOption: _filter,
     );
-    final albums = <AssetPathEntity>[];
+    final classic = <AssetPathEntity>[];
+    final other = <AssetPathEntity>[];
     for (final a in paths) {
       _albums[a.id] = a;
       if (a.isAll) {
         _allId = a.id;
+      } else if (_classicAlbums.contains(a.name.toLowerCase())) {
+        classic.add(a);
       } else {
-        albums.add(a);
+        other.add(a);
       }
     }
-    int rank(AssetPathEntity a) {
-      final i = _firstAlbums.indexOf(a.name.toLowerCase());
-      return i < 0 ? _firstAlbums.length : i;
-    }
-
-    albums.sort((x, y) {
-      final r = rank(x).compareTo(rank(y));
-      return r != 0 ? r : x.name.toLowerCase().compareTo(y.name.toLowerCase());
-    });
-    return [
-      for (final a in albums)
-        FolderRef(title: a.name, sourceId: id, path: a.id),
-    ];
+    int rank(AssetPathEntity a) => _classicAlbums.indexOf(a.name.toLowerCase());
+    classic.sort((x, y) => rank(x).compareTo(rank(y)));
+    other.sort((x, y) => x.name.toLowerCase().compareTo(y.name.toLowerCase()));
+    FolderRef ref(AssetPathEntity a) =>
+        FolderRef(title: a.name, sourceId: id, path: a.id);
+    return (classic: classic.map(ref).toList(), other: other.map(ref).toList());
   }
 
-  static const _firstAlbums = ['camera', 'screenshots', 'download', 'pictures'];
+  static const _classicAlbums = [
+    'camera',
+    'screenshots',
+    'screen recordings',
+    'screenrecorder',
+    'download',
+    'downloads',
+    'pictures',
+    'movies',
+    'videos',
+    'whatsapp images',
+    'whatsapp video',
+    'telegram',
+    'instagram',
+  ];
+
+  /// Folders whose media belongs in Recent. Anything else (app data, caches,
+  /// stickers) is still reachable from its own album.
+  static const _recentRoots = [
+    'dcim/',
+    'pictures/',
+    'download/',
+    'movies/',
+    'android/media/com.whatsapp/whatsapp/media/whatsapp images',
+    'android/media/com.whatsapp/whatsapp/media/whatsapp video',
+    'whatsapp/media/whatsapp images',
+    'whatsapp/media/whatsapp video',
+  ];
+
+  static bool _inRecent(AssetEntity a) {
+    // Before Android 10 there is no relative path; keep everything then.
+    final rel = a.relativePath?.toLowerCase();
+    if (rel == null) return true;
+    if (rel.contains('/.')) return false;
+    return _recentRoots.any(rel.startsWith);
+  }
+
   static const _firstPage = 120;
   static const _nextPage = 400;
 
@@ -83,20 +116,30 @@ class AndroidMediaSource extends MediaSource {
   Future<Listing> list(String path) async {
     final album = await _album(path);
     if (album == null) return Listing([], []);
+    final recent = path == recentPath;
+    var cursor = 0;
+    var done = false;
 
-    Future<List<MediaItem>> range(int start, int count) async {
-      final assets = await album.getAssetListRange(
-        start: start,
-        end: start + count,
-      );
-      return [for (final a in assets) ?_toItem(a)];
+    // Recent skips non-classic folders, so a page may need several reads.
+    Future<List<MediaItem>> next(int want) async {
+      final out = <MediaItem>[];
+      while (!done && out.length < want) {
+        final assets = await album.getAssetListRange(
+          start: cursor,
+          end: cursor + _nextPage,
+        );
+        cursor += assets.length;
+        if (assets.length < _nextPage) done = true;
+        for (final a in assets) {
+          if (recent && !_inRecent(a)) continue;
+          final item = _toItem(a);
+          if (item != null) out.add(item);
+        }
+      }
+      return out;
     }
 
-    return Listing(
-      [],
-      await range(0, _firstPage),
-      more: (offset) => range(offset, _nextPage),
-    );
+    return Listing([], await next(_firstPage), more: () => next(_nextPage));
   }
 
   MediaItem? _toItem(AssetEntity a) {

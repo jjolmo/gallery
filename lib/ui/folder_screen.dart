@@ -27,7 +27,7 @@ class _FolderScreenState extends State<FolderScreen> {
 
   // Media shown so far; big folders arrive in pages as the grid scrolls.
   List<MediaItem> _media = [];
-  Future<List<MediaItem>> Function(int offset)? _more;
+  Future<List<MediaItem>> Function()? _more;
   bool _loadingMore = false;
 
   @override
@@ -57,7 +57,7 @@ class _FolderScreenState extends State<FolderScreen> {
     if (more == null || _loadingMore || !mounted) return;
     _loadingMore = true;
     try {
-      final next = await more(_media.length);
+      final next = await more();
       if (!mounted) return;
       setState(() {
         _media.addAll(next);
