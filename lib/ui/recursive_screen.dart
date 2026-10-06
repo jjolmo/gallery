@@ -150,6 +150,20 @@ Future<void> showFolderActions(
               );
             },
           ),
+          Builder(
+            builder: (_) {
+              final app = AppScope.read(context);
+              final fav = app.isFavorite(folder);
+              return ListTile(
+                leading: Icon(fav ? Icons.star : Icons.star_border),
+                title: Text(fav ? 'Remove from favorites' : 'Add to favorites'),
+                onTap: () {
+                  Navigator.pop(sheet);
+                  app.toggleFavorite(folder);
+                },
+              );
+            },
+          ),
           ...extra,
         ],
       ),

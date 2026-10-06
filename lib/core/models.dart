@@ -92,6 +92,22 @@ class FolderRef {
   final bool remote;
 
   String get key => '$sourceId|$path';
+
+  Map<String, dynamic> toJson() => {
+    'title': title,
+    'sourceId': sourceId,
+    'path': path,
+    'subtitle': subtitle,
+    'remote': remote,
+  };
+
+  factory FolderRef.fromJson(Map<String, dynamic> j) => FolderRef(
+    title: j['title'] as String,
+    sourceId: j['sourceId'] as String,
+    path: j['path'] as String,
+    subtitle: j['subtitle'] as String?,
+    remote: j['remote'] as bool? ?? false,
+  );
 }
 
 void sortNewestFirst(List<MediaItem> items) =>

@@ -95,6 +95,10 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
         tile(app.recent, Icons.schedule),
+        if (app.favorites.isNotEmpty) ...[
+          header('Favorites'),
+          for (final f in app.favorites) tile(f, Icons.star_outline),
+        ],
         header('Folders'),
         // The most important folders first; the rest open below a toggle that
         // stays put, so "View less" is where "View more" was.
@@ -172,6 +176,8 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _remoteMenu(RemoteConfig r) async {
+    final home = AppScope.read(context);
+    final starred = home.isFavorite(home.folderForRemote(r));
     final action = await showModalBottomSheet<String>(
       context: context,
       builder: (context) => SafeArea(
@@ -179,6 +185,13 @@ class _HomeScreenState extends State<HomeScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(title: Text(r.name), subtitle: Text(r.type.label)),
+            ListTile(
+              leading: Icon(starred ? Icons.star : Icons.star_border),
+              title: Text(
+                starred ? 'Remove from favorites' : 'Add to favorites',
+              ),
+              onTap: () => Navigator.pop(context, 'fav'),
+            ),
             ListTile(
               leading: const Icon(Icons.photo_library_outlined),
               title: const Text('Show everything inside'),
@@ -201,7 +214,9 @@ class _HomeScreenState extends State<HomeScreen> {
     );
     if (!mounted) return;
     final app = AppScope.read(context);
-    if (action == 'all') {
+    if (action == 'fav') {
+      app.toggleFavorite(app.folderForRemote(r));
+    } else if (action == 'all') {
       Navigator.of(context).pop();
       _openRecursive(app.folderForRemote(r));
     } else if (action == 'edit') {

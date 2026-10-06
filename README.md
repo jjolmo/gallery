@@ -16,6 +16,9 @@ It shows the media on the device and can also browse folders on **SFTP/SSH**,
   photos, videos, GIFs) and sort by newest, oldest or name. Both are remembered.
   *Show everything inside* also offers folder order, its default, which keeps
   the viewer following new finds while the walk goes on.
+- **Favorite folders:** star any folder (device, subfolder or remote) from its
+  long-press menu or the star in its app bar. Starred folders are listed under
+  *Favorites* at the top of the side menu.
 - **Folders menu:** the side menu shows the six most important device folders
   and a *View more* button; it turns into *View less* in the same place and the
   rest of the folders open below it.

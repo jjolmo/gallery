@@ -65,4 +65,67 @@ void main() {
     expect(find.text('Other4'), findsNothing);
     expect(find.text('View more (3)'), findsOneWidget);
   });
+
+  test('favorites are saved and survive a restart', () async {
+    SharedPreferences.setMockInitialValues({});
+    final a = AppState();
+    await a.initForTest();
+    final cam = FolderRef(title: 'Camera', sourceId: 'local', path: '/Camera');
+    a.toggleFavorite(cam);
+    expect(a.isFavorite(cam), isTrue);
+
+    final b = AppState();
+    await b.initForTest();
+    expect(b.favorites.map((f) => f.title), ['Camera']);
+    b.toggleFavorite(cam);
+    expect(b.favorites, isEmpty);
+  });
+
+  testWidgets('long-press a folder in the menu to star and unstar it', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues({});
+    final state = AppState();
+    await state.initForTest();
+    state.localFolders = [
+      FolderRef(title: 'Camera', sourceId: 'local', path: '/Camera'),
+    ];
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 1;
+    await tester.pumpWidget(
+      AppScope(
+        state: state,
+        child: const MaterialApp(home: HomeScreen()),
+      ),
+    );
+    Future<void> settle() async {
+      for (var i = 0; i < 20; i++) {
+        await tester.pump(const Duration(milliseconds: 50));
+      }
+    }
+
+    Future<void> openMenu() async {
+      await tester.tap(find.byIcon(Icons.menu));
+      await settle();
+    }
+
+    await settle();
+    await openMenu();
+    expect(find.text('Favorites'), findsNothing);
+    await tester.longPress(find.text('Camera'));
+    await settle();
+    await tester.tap(find.text('Add to favorites'));
+    await settle();
+
+    await openMenu();
+    expect(find.text('Favorites'), findsOneWidget);
+    expect(find.text('Camera'), findsNWidgets(2)); // favorite + folder
+
+    await tester.longPress(find.text('Camera').first);
+    await settle();
+    await tester.tap(find.text('Remove from favorites'));
+    await settle();
+    await openMenu();
+    expect(find.text('Favorites'), findsNothing);
+  });
 }

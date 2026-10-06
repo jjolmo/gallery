@@ -23,6 +23,28 @@ class AppState extends ChangeNotifier {
 
   List<FolderRef> localFolders = [];
 
+  /// Folders starred by the user, in the order they were added.
+  List<FolderRef> get favorites => [
+    for (final j in _prefs.getStringList('favorites') ?? const <String>[])
+      FolderRef.fromJson(jsonDecode(j) as Map<String, dynamic>),
+  ];
+
+  bool isFavorite(FolderRef f) => favorites.any((x) => x.key == f.key);
+
+  void toggleFavorite(FolderRef f) {
+    final list = favorites;
+    final had = list.any((x) => x.key == f.key);
+    list.removeWhere((x) => x.key == f.key);
+    if (!had) list.add(f);
+    _saveFavorites(list);
+  }
+
+  void _saveFavorites(List<FolderRef> list) => _set(
+    () => _prefs.setStringList('favorites', [
+      for (final f in list) jsonEncode(f.toJson()),
+    ]),
+  );
+
   /// Device albums outside the classic set, shown collapsed in the menu.
   List<FolderRef> otherFolders = [];
   List<RemoteConfig> remotes = [];
@@ -151,6 +173,7 @@ class AppState extends ChangeNotifier {
 
   Future<void> deleteRemote(String id) async {
     remotes.removeWhere((r) => r.id == id);
+    _saveFavorites(favorites.where((f) => f.sourceId != id).toList());
     await _remoteSources.remove(id)?.close();
     await _storeRemotes();
     notifyListeners();

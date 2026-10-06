@@ -6,6 +6,7 @@ import 'package:photo_manager/photo_manager.dart';
 import '../core/app_state.dart';
 import '../core/models.dart';
 import '../core/view_options.dart';
+import '../sources/local_fs.dart';
 import '../sources/source.dart';
 import 'grid_scrollbar.dart';
 import 'media_grid.dart';
@@ -111,6 +112,16 @@ class _FolderScreenState extends State<FolderScreen> {
       appBar: AppBar(
         title: Text(widget.folder.title),
         actions: [
+          if (widget.folder.path != recentPath)
+            IconButton(
+              tooltip: app.isFavorite(widget.folder)
+                  ? 'Remove from favorites'
+                  : 'Add to favorites',
+              icon: Icon(
+                app.isFavorite(widget.folder) ? Icons.star : Icons.star_border,
+              ),
+              onPressed: () => app.toggleFavorite(widget.folder),
+            ),
           ViewButtons(
             filter: app.filter,
             sort: app.sort,
