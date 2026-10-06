@@ -38,7 +38,8 @@ It shows the media on the device and can also browse folders on **SFTP/SSH**,
   (otherwise a placeholder). SFTP videos up to 40 MB are downloaded for it.
 - **Lightweight:** the arm64 APK is about 10 MB. No video engine is bundled:
   Android plays videos with the system's ExoPlayer and Linux uses the system libmpv.
-- **Full-screen viewer:**
+- **Full-screen viewer:** only the photo, with no bar, name or buttons on top
+  (videos keep their play button and timeline).
   - Tap the left or right band to jump to the previous or next item at once, or
     swipe sideways to slide to it.
   - Tap the center band, or swipe up or down, to close the viewer.

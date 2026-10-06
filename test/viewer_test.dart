@@ -138,17 +138,17 @@ void main() {
     );
     await tester.tap(find.text('open'));
     await tester.pumpAndSettle();
-    expect(find.text('2 / 3'), findsOneWidget);
+    expect(find.bySemanticsLabel('2 / 3'), findsOneWidget);
   }
 
   testWidgets('tap on the bands moves between items', (tester) async {
     await open(tester);
     await tester.tapAt(const Offset(1150, 400));
     await tester.pump(); // one frame: no slide, no double-tap wait
-    expect(find.text('3 / 3'), findsOneWidget);
+    expect(find.bySemanticsLabel('3 / 3'), findsOneWidget);
     await tester.tapAt(const Offset(50, 400));
     await tester.pump(); // one frame: no slide, no double-tap wait
-    expect(find.text('2 / 3'), findsOneWidget);
+    expect(find.bySemanticsLabel('2 / 3'), findsOneWidget);
     await tester.pumpAndSettle(); // let the double-tap timer expire
   });
 
@@ -156,7 +156,7 @@ void main() {
     await open(tester);
     await tester.flingFrom(const Offset(900, 400), const Offset(-600, 0), 1500);
     await tester.pumpAndSettle();
-    expect(find.text('3 / 3'), findsOneWidget);
+    expect(find.bySemanticsLabel('3 / 3'), findsOneWidget);
   });
 
   testWidgets('mouse wheel changes item', (tester) async {
@@ -165,7 +165,7 @@ void main() {
     await tester.sendEventToBinding(g.hover(const Offset(600, 400)));
     await tester.sendEventToBinding(g.scroll(const Offset(0, 100)));
     await tester.pumpAndSettle();
-    expect(find.text('3 / 3'), findsOneWidget);
+    expect(find.bySemanticsLabel('3 / 3'), findsOneWidget);
   });
 
   testWidgets('viewer keeps going when the list grows', (tester) async {
@@ -190,14 +190,23 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(find.text('2 / 2'), findsOneWidget);
+    expect(find.bySemanticsLabel('2 / 2'), findsOneWidget);
 
     grown.add(items[2]);
     updates.value++;
     await tester.pumpAndSettle();
     await tester.tapAt(const Offset(1150, 400));
     await tester.pumpAndSettle(const Duration(milliseconds: 400));
-    expect(find.text('3 / 3'), findsOneWidget);
+    expect(find.bySemanticsLabel('3 / 3'), findsOneWidget);
+  });
+
+  testWidgets('only the photo is shown: no back button, no name', (
+    tester,
+  ) async {
+    await open(tester);
+    expect(find.byIcon(Icons.arrow_back), findsNothing);
+    expect(find.text('img1.png'), findsNothing);
+    expect(find.text('2 / 3'), findsNothing);
   });
 
   testWidgets('tap on the center band closes', (tester) async {

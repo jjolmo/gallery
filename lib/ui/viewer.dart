@@ -161,7 +161,6 @@ class _ViewerScreenState extends State<ViewerScreen>
   Widget build(BuildContext context) {
     final app = AppScope.of(context);
     final fade = (1 - _dragDy.abs() / 400).clamp(0.0, 1.0);
-    final item = widget.items[_index];
 
     return Focus(
       focusNode: _focus,
@@ -211,16 +210,11 @@ class _ViewerScreenState extends State<ViewerScreen>
                 ),
               ),
             ),
-            Positioned(
-              top: 0,
-              left: 0,
-              right: 0,
-              child: _TopBar(
-                title: item.name,
-                subtitle: '${_index + 1} / ${widget.items.length}',
-                opacity: fade,
-                onBack: _close,
-              ),
+            // Nothing drawn over the photo; the position is only exposed to
+            // screen readers (and tests).
+            Semantics(
+              label: '${_index + 1} / ${widget.items.length}',
+              child: const SizedBox.shrink(),
             ),
           ],
         ),
@@ -312,67 +306,4 @@ class _FullImageState extends State<_FullImage> {
       ),
     ),
   );
-}
-
-class _TopBar extends StatelessWidget {
-  const _TopBar({
-    required this.title,
-    required this.subtitle,
-    required this.opacity,
-    required this.onBack,
-  });
-
-  final String title;
-  final String subtitle;
-  final double opacity;
-  final VoidCallback onBack;
-
-  @override
-  Widget build(BuildContext context) {
-    return Opacity(
-      opacity: opacity,
-      child: DecoratedBox(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Colors.black54, Colors.transparent],
-          ),
-        ),
-        child: SafeArea(
-          bottom: false,
-          child: Row(
-            children: [
-              IconButton(
-                icon: const Icon(Icons.arrow_back, color: Colors.white),
-                onPressed: onBack,
-              ),
-              Expanded(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(color: Colors.white, fontSize: 15),
-                    ),
-                    Text(
-                      subtitle,
-                      style: const TextStyle(
-                        color: Colors.white70,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 16),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 }
