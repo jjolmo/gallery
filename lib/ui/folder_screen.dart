@@ -25,6 +25,11 @@ class FolderScreen extends StatefulWidget {
 class _FolderScreenState extends State<FolderScreen> {
   late Future<Listing> _listing;
 
+  // Media shown so far; big folders arrive in pages as the grid scrolls.
+  List<MediaItem> _media = [];
+  Future<List<MediaItem>> Function(int offset)? _more;
+  bool _loadingMore = false;
+
   @override
   void initState() {
     super.initState();
@@ -40,7 +45,29 @@ class _FolderScreenState extends State<FolderScreen> {
     if (!widget.folder.remote && (!app.localReady || !app.hasMediaAccess)) {
       return Future.value(Listing([], []));
     }
-    return _source.list(widget.folder.path);
+    return _source.list(widget.folder.path).then((l) {
+      _media = List.of(l.media);
+      _more = l.more;
+      return l;
+    });
+  }
+
+  Future<void> _loadMore() async {
+    final more = _more;
+    if (more == null || _loadingMore || !mounted) return;
+    _loadingMore = true;
+    try {
+      final next = await more(_media.length);
+      if (!mounted) return;
+      setState(() {
+        _media.addAll(next);
+        if (next.isEmpty) _more = null;
+      });
+    } catch (_) {
+      _more = null;
+    } finally {
+      _loadingMore = false;
+    }
   }
 
   Future<void> _refresh() async {
@@ -97,8 +124,8 @@ class _FolderScreenState extends State<FolderScreen> {
 
   Widget _content(AppState app, Listing listing) {
     final media = app.showVideos
-        ? listing.media
-        : listing.media.where((m) => !m.isVideo).toList();
+        ? _media
+        : _media.where((m) => !m.isVideo).toList();
     if (listing.folders.isEmpty && media.isEmpty) {
       return RefreshIndicator(
         onRefresh: _refresh,
@@ -153,28 +180,35 @@ class _FolderScreenState extends State<FolderScreen> {
                 crossAxisSpacing: 2,
               ),
               itemCount: media.length,
-              itemBuilder: (context, i) => GestureDetector(
-                onTap: () => Navigator.of(context).push(
-                  PageRouteBuilder(
-                    opaque: false,
-                    pageBuilder: (_, _, _) => ViewerScreen(
-                      source: _source,
-                      items: media,
-                      initialIndex: i,
+              itemBuilder: (context, i) {
+                if (_more != null && i > media.length - 90) {
+                  WidgetsBinding.instance.addPostFrameCallback(
+                    (_) => _loadMore(),
+                  );
+                }
+                return GestureDetector(
+                  onTap: () => Navigator.of(context).push(
+                    PageRouteBuilder(
+                      opaque: false,
+                      pageBuilder: (_, _, _) => ViewerScreen(
+                        source: _source,
+                        items: media,
+                        initialIndex: i,
+                      ),
+                      transitionsBuilder: (_, anim, _, child) =>
+                          FadeTransition(opacity: anim, child: child),
                     ),
-                    transitionsBuilder: (_, anim, _, child) =>
-                        FadeTransition(opacity: anim, child: child),
                   ),
-                ),
-                child: Hero(
-                  tag: '${_source.id}|${media[i].path}',
-                  child: MediaThumb(
-                    source: _source,
-                    item: media[i],
-                    size: thumbPx,
+                  child: Hero(
+                    tag: '${_source.id}|${media[i].path}',
+                    child: MediaThumb(
+                      source: _source,
+                      item: media[i],
+                      size: thumbPx,
+                    ),
                   ),
-                ),
-              ),
+                );
+              },
             ),
           ),
         ],

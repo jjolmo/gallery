@@ -24,44 +24,79 @@ class AndroidMediaSource extends MediaSource {
     return state.hasAccess;
   }
 
-  /// One folder per non-empty album, biggest first, after "Recent".
+  /// One folder per album, the usual camera folders first. Albums aren't
+  /// counted: that is a MediaStore query per album and made startup slow.
   Future<List<FolderRef>> albums() async {
     final paths = await PhotoManager.getAssetPathList(
       type: RequestType.common,
       hasAll: true,
       filterOption: _filter,
     );
-    final counted = <(AssetPathEntity, int)>[];
+    final albums = <AssetPathEntity>[];
     for (final a in paths) {
       _albums[a.id] = a;
       if (a.isAll) {
         _allId = a.id;
-        continue;
+      } else {
+        albums.add(a);
       }
-      final n = await a.assetCountAsync;
-      if (n > 0) counted.add((a, n));
     }
-    counted.sort((x, y) => y.$2.compareTo(x.$2));
+    int rank(AssetPathEntity a) {
+      final i = _firstAlbums.indexOf(a.name.toLowerCase());
+      return i < 0 ? _firstAlbums.length : i;
+    }
+
+    albums.sort((x, y) {
+      final r = rank(x).compareTo(rank(y));
+      return r != 0 ? r : x.name.toLowerCase().compareTo(y.name.toLowerCase());
+    });
     return [
-      for (final (a, n) in counted)
-        FolderRef(title: a.name, sourceId: id, path: a.id, subtitle: '$n'),
+      for (final a in albums)
+        FolderRef(title: a.name, sourceId: id, path: a.id),
     ];
   }
 
+  static const _firstAlbums = ['camera', 'screenshots', 'download', 'pictures'];
+  static const _firstPage = 120;
+  static const _nextPage = 400;
+
+  Future<AssetPathEntity?> _album(String path) async {
+    if (path != recentPath) {
+      if (_albums.isEmpty) await albums();
+      return _albums[path];
+    }
+    if (_allId == null) {
+      final all = await PhotoManager.getAssetPathList(
+        type: RequestType.common,
+        onlyAll: true,
+        filterOption: _filter,
+      );
+      if (all.isEmpty) return null;
+      _albums[all.first.id] = all.first;
+      _allId = all.first.id;
+    }
+    return _albums[_allId];
+  }
+
+  /// Returns the newest page right away; the grid pulls the rest as it scrolls.
   @override
   Future<Listing> list(String path) async {
-    if (_albums.isEmpty) await albums();
-    final album = _albums[path == recentPath ? _allId : path];
+    final album = await _album(path);
     if (album == null) return Listing([], []);
-    final total = await album.assetCountAsync;
-    final assets = <AssetEntity>[];
-    const page = 500;
-    for (var start = 0; start < total; start += page) {
-      assets.addAll(
-        await album.getAssetListRange(start: start, end: start + page),
+
+    Future<List<MediaItem>> range(int start, int count) async {
+      final assets = await album.getAssetListRange(
+        start: start,
+        end: start + count,
       );
+      return [for (final a in assets) ?_toItem(a)];
     }
-    return Listing([], [for (final a in assets) ?_toItem(a)]);
+
+    return Listing(
+      [],
+      await range(0, _firstPage),
+      more: (offset) => range(offset, _nextPage),
+    );
   }
 
   MediaItem? _toItem(AssetEntity a) {

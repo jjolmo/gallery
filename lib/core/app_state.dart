@@ -74,7 +74,11 @@ class AppState extends ChangeNotifier {
       final android = AndroidMediaSource();
       localSource = android;
       hasMediaAccess = await android.requestAccess();
-      localFolders = hasMediaAccess ? await android.albums() : [];
+      localFolders = [];
+      // Recent doesn't need the album list, so show it before loading albums.
+      localReady = true;
+      notifyListeners();
+      if (hasMediaAccess) localFolders = await android.albums();
     } else {
       localFolders = linuxDefaultFolders();
       localSource = LocalFsSource([for (final f in localFolders) f.path]);

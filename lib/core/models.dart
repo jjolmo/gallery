@@ -67,9 +67,12 @@ class FolderEntry {
 }
 
 class Listing {
-  Listing(this.folders, this.media);
+  Listing(this.folders, this.media, {this.more});
   final List<FolderEntry> folders;
   final List<MediaItem> media;
+
+  /// For big folders: fetches the media after [offset]; empty when done.
+  final Future<List<MediaItem>> Function(int offset)? more;
 }
 
 /// A place shown in the drawer: a source plus the path to open in it.
