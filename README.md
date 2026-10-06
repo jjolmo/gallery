@@ -16,11 +16,13 @@ It shows the media on the device and can also browse folders on **SFTP/SSH**,
   photos, videos, GIFs) and sort by newest, oldest or name. Both are remembered.
   *Show everything inside* also offers folder order, its default, which keeps
   the viewer following new finds while the walk goes on.
-- **Folders menu:** the side menu lists the device folders.
+- **Folders menu:** the side menu shows the six most important device folders
+  and a *View more* button; it turns into *View less* in the same place and the
+  rest of the folders open below it.
   - Android: the classic albums (Camera, Screenshots, Screen recordings, Download,
     Pictures, Movies, WhatsApp, Telegram, Instagram). Every other folder Android
-    found media in (app caches, stickers, game data) is under a collapsed
-    *Other folders*, and stays out of *Recent*.
+    found media in (app caches, stickers, game data) comes after them, behind
+    *View more*, and stays out of *Recent*.
   - Linux: the XDG folders (Pictures, Screenshots, DCIM, Videos, Downloads, Desktop).
 - **Remote folders:** add SFTP, WebDAV or Seafile locations from the menu. They
   are listed under *Remote folders*, and you can open their subfolders. Long-press

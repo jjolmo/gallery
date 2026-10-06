@@ -17,6 +17,8 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   FolderRef? _current;
+  bool _allFolders = false;
+  static const _shownFolders = 6;
 
   @override
   void initState() {
@@ -46,6 +48,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _drawer(AppState app, FolderRef current) {
     final theme = Theme.of(context);
+    final folders = [...app.localFolders, ...app.otherFolders];
 
     Widget tile(FolderRef f, IconData icon, {VoidCallback? onLongPress}) =>
         ListTile(
@@ -93,21 +96,25 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         tile(app.recent, Icons.schedule),
         header('Folders'),
-        for (final f in app.localFolders) tile(f, Icons.folder_outlined),
-        if (app.localFolders.isEmpty && app.otherFolders.isEmpty)
+        // The most important folders first; the rest open below a toggle that
+        // stays put, so "View less" is where "View more" was.
+        for (final f in folders.take(_shownFolders))
+          tile(f, Icons.folder_outlined),
+        if (folders.isEmpty)
           const ListTile(dense: true, title: Text('No media folders found')),
-        // Every other folder Android found media in; collapsed so app caches
-        // and game assets don't bury the real ones.
-        if (app.otherFolders.isNotEmpty)
-          ExpansionTile(
-            leading: const Icon(Icons.folder_copy_outlined),
-            title: Text('Other folders (${app.otherFolders.length})'),
-            shape: const Border(),
-            collapsedShape: const Border(),
-            children: [
-              for (final f in app.otherFolders) tile(f, Icons.folder_outlined),
-            ],
+        if (folders.length > _shownFolders)
+          ListTile(
+            leading: Icon(_allFolders ? Icons.expand_less : Icons.expand_more),
+            title: Text(
+              _allFolders
+                  ? 'View less'
+                  : 'View more (${folders.length - _shownFolders})',
+            ),
+            onTap: () => setState(() => _allFolders = !_allFolders),
           ),
+        if (_allFolders)
+          for (final f in folders.skip(_shownFolders))
+            tile(f, Icons.folder_outlined),
         header(
           'Remote folders',
           trailing: IconButton(
