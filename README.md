@@ -41,6 +41,8 @@ It shows the media on the device and can also browse folders on **SFTP/SSH**,
   MediaMetadataRetriever, which reads WebDAV and Seafile videos over HTTP without
   downloading them. Linux uses `ffmpegthumbnailer` or `ffmpeg` if installed
   (otherwise a placeholder). SFTP videos up to 40 MB are downloaded for it.
+- **Smooth scrolling:** thumbnails load a few at a time, and the ones you scroll
+  past before they start are dropped, so the cells on screen come first.
 - **Lightweight:** the arm64 APK is about 10 MB. No video engine is bundled:
   Android plays videos with the system's ExoPlayer and Linux uses the system libmpv.
 - **Full-screen viewer:** only the photo, with no bar, name or buttons on top

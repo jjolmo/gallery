@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -6,37 +7,79 @@ import '../core/models.dart';
 import '../core/video_frames.dart';
 import '../sources/source.dart';
 
-/// Resolves the provider for a grid cell, remembering recent ones so scrolling
-/// back doesn't re-download or re-request thumbnails.
 /// The grid's (cached) preview for [item]; the viewer shows it while the full
 /// image decodes, instead of a black frame.
 Future<ImageProvider?> thumbnailProvider(
   MediaSource source,
   MediaItem item,
   int size,
-) => _ThumbCache.get(source, item, size);
+) => _ThumbCache.request(source, item, size).future;
 
+/// A pending thumbnail. [cancel] drops it if it hasn't started yet, so cells
+/// scrolled past don't hold up the ones on screen.
+class _Ticket {
+  _Ticket(this.future, [this.cancel = _noop]);
+  final Future<ImageProvider?> future;
+  final void Function() cancel;
+  static void _noop() {}
+}
+
+class _Job {
+  _Job(this.key, this.run);
+  final String key;
+  final Future<ImageProvider?> Function() run;
+  final done = Completer<ImageProvider?>();
+  int holders = 0;
+}
+
+/// Resolves and decodes thumbnails a few at a time, remembering recent ones so
+/// scrolling back doesn't re-download or re-request them.
 class _ThumbCache {
   static final _map = <String, Future<ImageProvider?>>{};
   static const _max = 600;
+  static final _waiting = <String, _Job>{};
+  static int _running = 0;
+  static const _parallel = 6;
 
-  static Future<ImageProvider?> get(
-    MediaSource source,
-    MediaItem item,
-    int size,
-  ) {
+  static _Ticket request(MediaSource source, MediaItem item, int size) {
     final key = '${source.id}|${item.path}|$size';
     final hit = _map.remove(key);
-    if (hit != null) return _map[key] = hit;
-    final f = _resolve(source, item, size);
-    _map[key] = f;
-    if (_map.length > _max) _map.remove(_map.keys.first);
-    // Failures shouldn't stick: let the next build retry.
-    f.catchError((_) {
-      _map.remove(key);
-      return null;
+    if (hit != null) return _Ticket(_map[key] = hit);
+    final job = _waiting.putIfAbsent(
+      key,
+      () => _Job(key, () => _resolve(source, item, size)),
+    );
+    job.holders++;
+    _pump();
+    var cancelled = false;
+    return _Ticket(job.done.future, () {
+      if (cancelled) return;
+      cancelled = true;
+      if (--job.holders == 0) _waiting.remove(key);
     });
-    return f;
+  }
+
+  static void _pump() {
+    while (_running < _parallel && _waiting.isNotEmpty) {
+      final job = _waiting.remove(_waiting.keys.first)!;
+      _running++;
+      final f = job.run();
+      _map[job.key] = f;
+      if (_map.length > _max) _map.remove(_map.keys.first);
+      f
+          .then(
+            job.done.complete,
+            onError: (Object e, StackTrace st) {
+              // Failures shouldn't stick: let the next build retry.
+              _map.remove(job.key);
+              job.done.completeError(e, st);
+            },
+          )
+          .whenComplete(() {
+            _running--;
+            _pump();
+          });
+    }
   }
 
   static Future<ImageProvider?> _resolve(
@@ -44,6 +87,21 @@ class _ThumbCache {
     MediaItem item,
     int size,
   ) async {
+    final provider = await _provider(source, item, size);
+    // Decoding counts towards the limit too, so a fast scroll doesn't leave a
+    // backlog of decodes for cells that are gone.
+    if (provider != null) await _decode(provider);
+    return provider;
+  }
+
+  static Future<ImageProvider?> _provider(
+    MediaSource source,
+    MediaItem item,
+    int size,
+  ) async {
+    if (item.localPath != null && !item.isVideo) {
+      return _resized(FileImage(File(item.localPath!)), size);
+    }
     final bytes = await source.thumbnail(item, size);
     if (bytes != null) return MemoryImage(bytes);
     if (item.isVideo) {
@@ -54,16 +112,32 @@ class _ThumbCache {
       );
       return frame == null ? null : MemoryImage(frame);
     }
-    final file = await source.localFile(item);
-    return ResizeImage(
-      FileImage(file),
-      width: size,
-      policy: ResizeImagePolicy.fit,
+    return _resized(FileImage(await source.localFile(item)), size);
+  }
+
+  static ImageProvider _resized(ImageProvider p, int size) =>
+      ResizeImage(p, width: size, policy: ResizeImagePolicy.fit);
+
+  static Future<void> _decode(ImageProvider provider) {
+    final done = Completer<void>();
+    final stream = provider.resolve(ImageConfiguration.empty);
+    late final ImageStreamListener listener;
+    listener = ImageStreamListener(
+      (_, _) {
+        if (!done.isCompleted) done.complete();
+        stream.removeListener(listener);
+      },
+      onError: (Object e, StackTrace? st) {
+        if (!done.isCompleted) done.completeError(e, st);
+        stream.removeListener(listener);
+      },
     );
+    stream.addListener(listener);
+    return done.future;
   }
 }
 
-class MediaThumb extends StatelessWidget {
+class MediaThumb extends StatefulWidget {
   const MediaThumb({
     super.key,
     required this.source,
@@ -76,39 +150,53 @@ class MediaThumb extends StatelessWidget {
   final int size;
 
   @override
+  State<MediaThumb> createState() => _MediaThumbState();
+}
+
+class _MediaThumbState extends State<MediaThumb> {
+  late _Ticket _ticket = _request();
+
+  _Ticket _request() =>
+      _ThumbCache.request(widget.source, widget.item, widget.size);
+
+  @override
+  void didUpdateWidget(MediaThumb old) {
+    super.didUpdateWidget(old);
+    if (old.source.id != widget.source.id ||
+        old.item.path != widget.item.path ||
+        old.size != widget.size) {
+      _ticket.cancel();
+      _ticket = _request();
+    }
+  }
+
+  @override
+  void dispose() {
+    _ticket.cancel();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final item = widget.item;
     final scheme = Theme.of(context).colorScheme;
     final placeholder = ColoredBox(color: scheme.surfaceContainerHighest);
 
-    Widget image;
-    if (item.localPath != null && !item.isVideo) {
-      image = Image(
-        image: ResizeImage(
-          FileImage(File(item.localPath!)),
-          width: size,
-          policy: ResizeImagePolicy.fit,
-        ),
-        fit: BoxFit.cover,
-        gaplessPlayback: true,
-        errorBuilder: (_, _, _) => _broken(scheme),
-      );
-    } else {
-      image = FutureBuilder<ImageProvider?>(
-        future: _ThumbCache.get(source, item, size),
-        builder: (context, snap) {
-          if (snap.hasError) return _broken(scheme);
-          if (snap.connectionState != ConnectionState.done) return placeholder;
-          final provider = snap.data;
-          if (provider == null) return _videoPlaceholder(scheme);
-          return Image(
-            image: provider,
-            fit: BoxFit.cover,
-            gaplessPlayback: true,
-            errorBuilder: (_, _, _) => _broken(scheme),
-          );
-        },
-      );
-    }
+    final image = FutureBuilder<ImageProvider?>(
+      future: _ticket.future,
+      builder: (context, snap) {
+        if (snap.hasError) return _broken(scheme);
+        if (snap.connectionState != ConnectionState.done) return placeholder;
+        final provider = snap.data;
+        if (provider == null) return _videoPlaceholder(scheme);
+        return Image(
+          image: provider,
+          fit: BoxFit.cover,
+          gaplessPlayback: true,
+          errorBuilder: (_, _, _) => _broken(scheme),
+        );
+      },
+    );
 
     return Stack(
       fit: StackFit.expand,
@@ -137,7 +225,7 @@ class MediaThumb extends StatelessWidget {
             Icon(Icons.movie_outlined, color: s.onSurfaceVariant),
             const SizedBox(height: 4),
             Text(
-              item.name,
+              widget.item.name,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
               textAlign: TextAlign.center,
