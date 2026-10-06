@@ -17,6 +17,15 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   FolderRef? _current;
 
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final app = AppScope.read(context);
+      if (!app.localReady) app.reloadLocal();
+    });
+  }
+
   void _open(FolderRef f) {
     Navigator.of(context).pop();
     setState(() => _current = f);
@@ -27,7 +36,8 @@ class _HomeScreenState extends State<HomeScreen> {
     final app = AppScope.of(context);
     final current = _current ?? app.recent;
     return FolderScreen(
-      key: ValueKey(current.key),
+      // Rebuilt once device folders are ready, so Recent loads with permission.
+      key: ValueKey('${current.key}|${app.localReady}'),
       folder: current,
       drawer: _drawer(app, current),
     );

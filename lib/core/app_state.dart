@@ -24,6 +24,11 @@ class AppState extends ChangeNotifier {
   List<RemoteConfig> remotes = [];
   bool hasMediaAccess = true;
 
+  /// False until device folders are known. On Android that needs the media
+  /// permission, which is asked after the first frame: asking before runApp
+  /// leaves a black screen behind the dialog, or forever if it never shows.
+  bool localReady = false;
+
   int get columns => _prefs.getInt('columns') ?? 3;
   set columns(int v) => _set(() => _prefs.setInt('columns', v));
 
@@ -50,13 +55,18 @@ class AppState extends ChangeNotifier {
   Future<void> init() async {
     _prefs = await SharedPreferences.getInstance();
     remotes = await _loadRemotes();
-    await reloadLocal();
+    if (Platform.isAndroid) {
+      localSource = AndroidMediaSource();
+    } else {
+      await reloadLocal();
+    }
   }
 
   @visibleForTesting
   Future<void> initForTest() async {
     _prefs = await SharedPreferences.getInstance();
     localSource = LocalFsSource([]);
+    localReady = true;
   }
 
   Future<void> reloadLocal() async {
@@ -69,6 +79,7 @@ class AppState extends ChangeNotifier {
       localFolders = linuxDefaultFolders();
       localSource = LocalFsSource([for (final f in localFolders) f.path]);
     }
+    localReady = true;
     notifyListeners();
   }
 

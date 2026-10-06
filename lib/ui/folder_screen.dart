@@ -34,7 +34,14 @@ class _FolderScreenState extends State<FolderScreen> {
   MediaSource get _source =>
       AppScope.read(context).sourceFor(widget.folder.sourceId);
 
-  Future<Listing> _load() => _source.list(widget.folder.path);
+  Future<Listing> _load() {
+    final app = AppScope.read(context);
+    // Device media can't be listed before the permission flow has run.
+    if (!widget.folder.remote && (!app.localReady || !app.hasMediaAccess)) {
+      return Future.value(Listing([], []));
+    }
+    return _source.list(widget.folder.path);
+  }
 
   Future<void> _refresh() async {
     final f = _load();
@@ -57,7 +64,9 @@ class _FolderScreenState extends State<FolderScreen> {
           ),
         ],
       ),
-      body: !app.hasMediaAccess && !widget.folder.remote
+      body: !app.localReady && !widget.folder.remote
+          ? const Center(child: CircularProgressIndicator())
+          : !app.hasMediaAccess && !widget.folder.remote
           ? _NoAccess(
               onRetry: () async {
                 await app.reloadLocal();
