@@ -6,6 +6,7 @@ import '../core/app_state.dart';
 import '../core/models.dart';
 import '../core/view_options.dart';
 import '../sources/source.dart';
+import 'grid_scrollbar.dart';
 import 'media_grid.dart';
 import 'view_buttons.dart';
 
@@ -95,14 +96,17 @@ class _RecursiveScreenState extends State<RecursiveScreen> {
           ? Center(child: Text('$_error', textAlign: TextAlign.center))
           : _done && shown.isEmpty
           ? const Center(child: Text('No photos or videos in this folder'))
-          : CustomScrollView(
-              slivers: [
-                MediaGridSliver(
-                  source: _source,
-                  items: shown,
-                  updates: live ? _grew : null,
-                ),
-              ],
+          : GridScrollbar(
+              builder: (context, controller) => CustomScrollView(
+                controller: controller,
+                slivers: [
+                  MediaGridSliver(
+                    source: _source,
+                    items: shown,
+                    updates: live ? _grew : null,
+                  ),
+                ],
+              ),
             ),
     );
   }

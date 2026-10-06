@@ -7,6 +7,7 @@ import '../core/app_state.dart';
 import '../core/models.dart';
 import '../core/view_options.dart';
 import '../sources/source.dart';
+import 'grid_scrollbar.dart';
 import 'media_grid.dart';
 import 'recursive_screen.dart';
 import 'view_buttons.dart';
@@ -188,40 +189,43 @@ class _FolderScreenState extends State<FolderScreen> {
 
     return RefreshIndicator(
       onRefresh: _refresh,
-      child: CustomScrollView(
-        slivers: [
-          if (_loadingAll)
-            const SliverToBoxAdapter(
-              child: LinearProgressIndicator(minHeight: 2),
+      child: GridScrollbar(
+        builder: (context, controller) => CustomScrollView(
+          controller: controller,
+          slivers: [
+            if (_loadingAll)
+              const SliverToBoxAdapter(
+                child: LinearProgressIndicator(minHeight: 2),
+              ),
+            SliverList.builder(
+              itemCount: listing.folders.length,
+              itemBuilder: (context, i) {
+                final f = listing.folders[i];
+                final ref = FolderRef(
+                  title: f.name,
+                  sourceId: widget.folder.sourceId,
+                  path: f.path,
+                  remote: widget.folder.remote,
+                );
+                void open() => Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => FolderScreen(folder: ref)),
+                );
+                return ListTile(
+                  leading: const Icon(Icons.folder_outlined),
+                  title: Text(f.name),
+                  onTap: open,
+                  onLongPress: () =>
+                      showFolderActions(context, ref, onOpen: open),
+                );
+              },
             ),
-          SliverList.builder(
-            itemCount: listing.folders.length,
-            itemBuilder: (context, i) {
-              final f = listing.folders[i];
-              final ref = FolderRef(
-                title: f.name,
-                sourceId: widget.folder.sourceId,
-                path: f.path,
-                remote: widget.folder.remote,
-              );
-              void open() => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => FolderScreen(folder: ref)),
-              );
-              return ListTile(
-                leading: const Icon(Icons.folder_outlined),
-                title: Text(f.name),
-                onTap: open,
-                onLongPress: () =>
-                    showFolderActions(context, ref, onOpen: open),
-              );
-            },
-          ),
-          MediaGridSliver(
-            source: _source,
-            items: media,
-            onNearEnd: _more == null || sortAll ? null : _loadMore,
-          ),
-        ],
+            MediaGridSliver(
+              source: _source,
+              items: media,
+              onNearEnd: _more == null || sortAll ? null : _loadMore,
+            ),
+          ],
+        ),
       ),
     );
   }

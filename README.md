@@ -10,6 +10,8 @@ It shows the media on the device and can also browse folders on **SFTP/SSH**,
 
 - **Recent:** the newest photos and videos first, in a grid. The grid has 3
   columns by default; change it in *Settings* (2 to 8).
+- **Scrollbar:** shows while you scroll and fades when you stop; drag its thumb
+  to jump through a long grid.
 - **Filter and sort:** two app bar buttons on every grid. Filter by type (all,
   photos, videos, GIFs) and sort by newest, oldest or name. Both are remembered.
   *Show everything inside* also offers folder order, its default, which keeps
