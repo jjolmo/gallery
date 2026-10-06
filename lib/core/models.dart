@@ -5,11 +5,24 @@ import 'package:path/path.dart' as p;
 enum MediaKind { image, gif, video }
 
 const imageExtensions = {
-  '.jpg', '.jpeg', '.png', '.webp', '.bmp', '.heic', '.heif', '.avif',
+  '.jpg',
+  '.jpeg',
+  '.png',
+  '.webp',
+  '.bmp',
+  '.heic',
+  '.heif',
+  '.avif',
 };
 const gifExtensions = {'.gif'};
 const videoExtensions = {
-  '.mp4', '.m4v', '.mov', '.webm', '.mkv', '.3gp', '.avi',
+  '.mp4',
+  '.m4v',
+  '.mov',
+  '.webm',
+  '.mkv',
+  '.3gp',
+  '.avi',
 };
 
 MediaKind? kindFromName(String name) {

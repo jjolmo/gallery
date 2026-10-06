@@ -28,7 +28,8 @@ class LocalFsSource extends MediaSource {
   }
 
   @override
-  Future<File> localFile(MediaItem item) async => File(item.localPath ?? item.path);
+  Future<File> localFile(MediaItem item) async =>
+      File(item.localPath ?? item.path);
 }
 
 Listing _listDir(String path) {
@@ -103,7 +104,13 @@ List<FolderRef> linuxDefaultFolders() {
   final xdg = _readXdgUserDirs(home);
   final candidates = <(String, String?)>[
     ('Pictures', xdg['XDG_PICTURES_DIR'] ?? p.join(home, 'Pictures')),
-    ('Screenshots', p.join(xdg['XDG_PICTURES_DIR'] ?? p.join(home, 'Pictures'), 'Screenshots')),
+    (
+      'Screenshots',
+      p.join(
+        xdg['XDG_PICTURES_DIR'] ?? p.join(home, 'Pictures'),
+        'Screenshots',
+      ),
+    ),
     ('Camera', p.join(home, 'DCIM')),
     ('Videos', xdg['XDG_VIDEOS_DIR'] ?? p.join(home, 'Videos')),
     ('Downloads', xdg['XDG_DOWNLOAD_DIR'] ?? p.join(home, 'Downloads')),
@@ -114,7 +121,9 @@ List<FolderRef> linuxDefaultFolders() {
   for (final (title, path) in candidates) {
     if (path == null || path == home || !used.add(path)) continue;
     if (!Directory(path).existsSync()) continue;
-    out.add(FolderRef(title: title, sourceId: 'local', path: path, subtitle: path));
+    out.add(
+      FolderRef(title: title, sourceId: 'local', path: path, subtitle: path),
+    );
   }
   return out;
 }

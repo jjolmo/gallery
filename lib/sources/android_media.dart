@@ -57,7 +57,9 @@ class AndroidMediaSource extends MediaSource {
     final assets = <AssetEntity>[];
     const page = 500;
     for (var start = 0; start < total; start += page) {
-      assets.addAll(await album.getAssetListRange(start: start, end: start + page));
+      assets.addAll(
+        await album.getAssetListRange(start: start, end: start + page),
+      );
     }
     return Listing([], [for (final a in assets) ?_toItem(a)]);
   }
@@ -68,7 +70,8 @@ class AndroidMediaSource extends MediaSource {
     if (a.type == AssetType.video) {
       kind = MediaKind.video;
     } else if (a.type == AssetType.image) {
-      final gif = a.mimeType == 'image/gif' || name.toLowerCase().endsWith('.gif');
+      final gif =
+          a.mimeType == 'image/gif' || name.toLowerCase().endsWith('.gif');
       kind = gif ? MediaKind.gif : MediaKind.image;
     } else {
       return null;
@@ -85,12 +88,16 @@ class AndroidMediaSource extends MediaSource {
 
   @override
   Future<Uint8List?> thumbnail(MediaItem item, int size) =>
-      (item.handle as AssetEntity).thumbnailDataWithSize(ThumbnailSize.square(size));
+      (item.handle as AssetEntity).thumbnailDataWithSize(
+        ThumbnailSize.square(size),
+      );
 
   @override
   Future<File> localFile(MediaItem item) async {
     final file = await (item.handle as AssetEntity).file;
-    if (file == null) throw FileSystemException('Media not available', item.name);
+    if (file == null) {
+      throw FileSystemException('Media not available', item.name);
+    }
     return file;
   }
 }

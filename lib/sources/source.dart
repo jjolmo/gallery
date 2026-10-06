@@ -32,10 +32,13 @@ abstract class RemoteSource extends MediaSource {
   @override
   Future<File> localFile(MediaItem item) {
     if (item.localPath != null) return Future.value(File(item.localPath!));
-    final key = '$id|${item.path}|${item.modified.millisecondsSinceEpoch}|${item.size}';
+    final key =
+        '$id|${item.path}|${item.modified.millisecondsSinceEpoch}|${item.size}';
     return _inFlight.putIfAbsent(key, () async {
       try {
-        return await MediaCache.instance.getOrCreate(key, item.name, (target) async {
+        return await MediaCache.instance.getOrCreate(key, item.name, (
+          target,
+        ) async {
           await _gate.run(() => download(item.path, target));
         });
       } finally {

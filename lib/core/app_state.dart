@@ -33,21 +33,30 @@ class AppState extends ChangeNotifier {
   bool get autoplayVideos => _prefs.getBool('autoplayVideos') ?? true;
   set autoplayVideos(bool v) => _set(() => _prefs.setBool('autoplayVideos', v));
 
-  ThemeMode get themeMode =>
-      ThemeMode.values.byName(_prefs.getString('themeMode') ?? ThemeMode.dark.name);
-  set themeMode(ThemeMode v) => _set(() => _prefs.setString('themeMode', v.name));
+  ThemeMode get themeMode => ThemeMode.values.byName(
+    _prefs.getString('themeMode') ?? ThemeMode.dark.name,
+  );
+  set themeMode(ThemeMode v) =>
+      _set(() => _prefs.setString('themeMode', v.name));
 
   void _set(Future<bool> Function() write) {
     write();
     notifyListeners();
   }
 
-  FolderRef get recent => FolderRef(title: 'Recent', sourceId: localSource.id, path: recentPath);
+  FolderRef get recent =>
+      FolderRef(title: 'Recent', sourceId: localSource.id, path: recentPath);
 
   Future<void> init() async {
     _prefs = await SharedPreferences.getInstance();
     remotes = await _loadRemotes();
     await reloadLocal();
+  }
+
+  @visibleForTesting
+  Future<void> initForTest() async {
+    _prefs = await SharedPreferences.getInstance();
+    localSource = LocalFsSource([]);
   }
 
   Future<void> reloadLocal() async {
@@ -112,15 +121,18 @@ class AppState extends ChangeNotifier {
 
   // Credentials live in a private file rather than the system keyring: many
   // ARM Linux boards run without a Secret Service, and then nothing would work.
-  Future<File> get _remotesFile async =>
-      File(p.join((await getApplicationSupportDirectory()).path, 'remotes.json'));
+  Future<File> get _remotesFile async => File(
+    p.join((await getApplicationSupportDirectory()).path, 'remotes.json'),
+  );
 
   Future<List<RemoteConfig>> _loadRemotes() async {
     try {
       final f = await _remotesFile;
       if (!await f.exists()) return [];
       final list = jsonDecode(await f.readAsString()) as List;
-      return [for (final j in list) RemoteConfig.fromJson(j as Map<String, dynamic>)];
+      return [
+        for (final j in list) RemoteConfig.fromJson(j as Map<String, dynamic>),
+      ];
     } catch (_) {
       return [];
     }
@@ -136,7 +148,7 @@ class AppState extends ChangeNotifier {
 
 class AppScope extends InheritedNotifier<AppState> {
   const AppScope({super.key, required AppState state, required super.child})
-      : super(notifier: state);
+    : super(notifier: state);
 
   static AppState of(BuildContext context) =>
       context.dependOnInheritedWidgetOfExactType<AppScope>()!.notifier!;

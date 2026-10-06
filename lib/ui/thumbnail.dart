@@ -11,7 +11,11 @@ class _ThumbCache {
   static final _map = <String, Future<ImageProvider?>>{};
   static const _max = 600;
 
-  static Future<ImageProvider?> get(MediaSource source, MediaItem item, int size) {
+  static Future<ImageProvider?> get(
+    MediaSource source,
+    MediaItem item,
+    int size,
+  ) {
     final key = '${source.id}|${item.path}|$size';
     final hit = _map.remove(key);
     if (hit != null) return _map[key] = hit;
@@ -26,17 +30,30 @@ class _ThumbCache {
     return f;
   }
 
-  static Future<ImageProvider?> _resolve(MediaSource source, MediaItem item, int size) async {
+  static Future<ImageProvider?> _resolve(
+    MediaSource source,
+    MediaItem item,
+    int size,
+  ) async {
     final bytes = await source.thumbnail(item, size);
     if (bytes != null) return MemoryImage(bytes);
     if (item.isVideo) return null;
     final file = await source.localFile(item);
-    return ResizeImage(FileImage(file), width: size, policy: ResizeImagePolicy.fit);
+    return ResizeImage(
+      FileImage(file),
+      width: size,
+      policy: ResizeImagePolicy.fit,
+    );
   }
 }
 
 class MediaThumb extends StatelessWidget {
-  const MediaThumb({super.key, required this.source, required this.item, required this.size});
+  const MediaThumb({
+    super.key,
+    required this.source,
+    required this.item,
+    required this.size,
+  });
 
   final MediaSource source;
   final MediaItem item;
@@ -50,7 +67,11 @@ class MediaThumb extends StatelessWidget {
     Widget image;
     if (item.localPath != null && !item.isVideo) {
       image = Image(
-        image: ResizeImage(FileImage(File(item.localPath!)), width: size, policy: ResizeImagePolicy.fit),
+        image: ResizeImage(
+          FileImage(File(item.localPath!)),
+          width: size,
+          policy: ResizeImagePolicy.fit,
+        ),
         fit: BoxFit.cover,
         gaplessPlayback: true,
         errorBuilder: (_, _, _) => _broken(scheme),
@@ -85,32 +106,32 @@ class MediaThumb extends StatelessWidget {
   }
 
   Widget _broken(ColorScheme s) => ColoredBox(
-        color: s.surfaceContainerHighest,
-        child: Icon(Icons.broken_image_outlined, color: s.onSurfaceVariant),
-      );
+    color: s.surfaceContainerHighest,
+    child: Icon(Icons.broken_image_outlined, color: s.onSurfaceVariant),
+  );
 
   Widget _videoPlaceholder(ColorScheme s) => ColoredBox(
-        color: s.surfaceContainerHigh,
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(6),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.movie_outlined, color: s.onSurfaceVariant),
-                const SizedBox(height: 4),
-                Text(
-                  item.name,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 10, color: s.onSurfaceVariant),
-                ),
-              ],
+    color: s.surfaceContainerHigh,
+    child: Center(
+      child: Padding(
+        padding: const EdgeInsets.all(6),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.movie_outlined, color: s.onSurfaceVariant),
+            const SizedBox(height: 4),
+            Text(
+              item.name,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 10, color: s.onSurfaceVariant),
             ),
-          ),
+          ],
         ),
-      );
+      ),
+    ),
+  );
 }
 
 class _Badge extends StatelessWidget {
@@ -127,8 +148,19 @@ class _Badge extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
         child: kind == MediaKind.video
-            ? const Icon(Icons.play_arrow_rounded, size: 16, color: Colors.white)
-            : const Text('GIF', style: TextStyle(fontSize: 10, color: Colors.white, fontWeight: FontWeight.bold)),
+            ? const Icon(
+                Icons.play_arrow_rounded,
+                size: 16,
+                color: Colors.white,
+              )
+            : const Text(
+                'GIF',
+                style: TextStyle(
+                  fontSize: 10,
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
       ),
     );
   }

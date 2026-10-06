@@ -11,7 +11,8 @@ import 'source.dart';
 
 /// Seafile through its Web API v2. Paths are paths inside the configured library.
 class SeafileSource extends RemoteSource {
-  SeafileSource(this.config) : _server = config.host.replaceAll(RegExp(r'/+$'), '');
+  SeafileSource(this.config)
+    : _server = config.host.replaceAll(RegExp(r'/+$'), '');
   final RemoteConfig config;
   final String _server;
   final _http = http.Client();
@@ -40,7 +41,10 @@ class SeafileSource extends RemoteSource {
 
   Future<String> _repo() async {
     if (_repoId != null) return _repoId!;
-    final res = await _http.get(Uri.parse('$_server/api2/repos/'), headers: await _headers());
+    final res = await _http.get(
+      Uri.parse('$_server/api2/repos/'),
+      headers: await _headers(),
+    );
     _check(res);
     final repos = (jsonDecode(res.body) as List).cast<Map>();
     final match = repos.where((r) => r['name'] == config.library).toList();
@@ -57,18 +61,27 @@ class SeafileSource extends RemoteSource {
     }
   }
 
-  Uri _api(String repo, String endpoint, String path, [Map<String, String>? extra]) =>
+  Uri _api(
+    String repo,
+    String endpoint,
+    String path, [
+    Map<String, String>? extra,
+  ]) =>
       Uri.parse('$_server/api2/repos/$repo/$endpoint/')
           .replace(queryParameters: {'p': path, ...?extra});
 
   @override
   Future<Listing> list(String path) async {
     final repo = await _repo();
-    final res = await _http.get(_api(repo, 'dir', path), headers: await _headers());
+    final res = await _http.get(
+      _api(repo, 'dir', path),
+      headers: await _headers(),
+    );
     _check(res);
     final folders = <FolderEntry>[];
     final media = <MediaItem>[];
-    for (final e in (jsonDecode(utf8.decode(res.bodyBytes)) as List).cast<Map>()) {
+    for (final e
+        in (jsonDecode(utf8.decode(res.bodyBytes)) as List).cast<Map>()) {
       final name = e['name'] as String;
       if (isHiddenName(name)) continue;
       final full = p.posix.join(path, name);
@@ -78,15 +91,21 @@ class SeafileSource extends RemoteSource {
       }
       final kind = kindFromName(name);
       if (kind == null) continue;
-      media.add(MediaItem(
-        path: full,
-        name: name,
-        kind: kind,
-        modified: DateTime.fromMillisecondsSinceEpoch(((e['mtime'] as num?) ?? 0).toInt() * 1000),
-        size: (e['size'] as num?)?.toInt(),
-      ));
+      media.add(
+        MediaItem(
+          path: full,
+          name: name,
+          kind: kind,
+          modified: DateTime.fromMillisecondsSinceEpoch(
+            ((e['mtime'] as num?) ?? 0).toInt() * 1000,
+          ),
+          size: (e['size'] as num?)?.toInt(),
+        ),
+      );
     }
-    folders.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+    folders.sort(
+      (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
+    );
     sortNewestFirst(media);
     return Listing(folders, media);
   }
@@ -102,7 +121,9 @@ class SeafileSource extends RemoteSource {
         headers: await _headers(),
       );
       final type = res.headers['content-type'] ?? '';
-      if (res.statusCode == 200 && type.startsWith('image/')) return res.bodyBytes;
+      if (res.statusCode == 200 && type.startsWith('image/')) {
+        return res.bodyBytes;
+      }
     } catch (_) {}
     return null;
   }
@@ -110,12 +131,17 @@ class SeafileSource extends RemoteSource {
   @override
   Future<void> download(String path, File target) async {
     final repo = await _repo();
-    final res = await _http.get(_api(repo, 'file', path), headers: await _headers());
+    final res = await _http.get(
+      _api(repo, 'file', path),
+      headers: await _headers(),
+    );
     _check(res);
     // The API answers with a one-time download link as a JSON string.
     final link = jsonDecode(res.body) as String;
     final dl = await _http.send(http.Request('GET', Uri.parse(link)));
-    if (dl.statusCode != 200) throw HttpException('Seafile download ${dl.statusCode}');
+    if (dl.statusCode != 200) {
+      throw HttpException('Seafile download ${dl.statusCode}');
+    }
     final sink = target.openWrite();
     try {
       await sink.addStream(dl.stream);

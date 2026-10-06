@@ -17,9 +17,9 @@ jobs:
   android:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: 17
@@ -56,7 +56,7 @@ jobs:
           cp build/app/outputs/flutter-apk/app-arm64-v8a-release.apk gallery-android-arm64.apk
           cp build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk gallery-android-armv7.apk
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: android
           path: gallery-android-*.apk
@@ -72,7 +72,7 @@ jobs:
             arch: x64
     runs-on: ${{ matrix.runner }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: System dependencies
         run: |
@@ -96,7 +96,7 @@ jobs:
           tar -C "$(dirname "$bundle")" --transform 's,^bundle,gallery,' \
             -czf gallery-linux-${{ matrix.arch }}.tar.gz bundle
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: linux-${{ matrix.arch }}
           path: gallery-linux-*.tar.gz
@@ -106,7 +106,7 @@ jobs:
     needs: [android, linux]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v5
         with:
           merge-multiple: true
 

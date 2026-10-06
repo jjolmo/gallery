@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:math' as math;
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:photo_view/photo_view.dart';
@@ -31,17 +32,23 @@ class ViewerScreen extends StatefulWidget {
   State<ViewerScreen> createState() => _ViewerScreenState();
 }
 
-class _ViewerScreenState extends State<ViewerScreen> with SingleTickerProviderStateMixin {
-  late final PageController _pages = PageController(initialPage: widget.initialIndex);
+class _ViewerScreenState extends State<ViewerScreen>
+    with SingleTickerProviderStateMixin {
+  late final PageController _pages = PageController(
+    initialPage: widget.initialIndex,
+  );
   late int _index = widget.initialIndex;
   bool _zoomed = false;
   final _focus = FocusNode();
 
   double _dragDy = 0;
-  late final AnimationController _settle = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 180),
-  )..addListener(() => setState(() => _dragDy = _settleFrom * (1 - _settle.value)));
+  late final AnimationController _settle =
+      AnimationController(
+        vsync: this,
+        duration: const Duration(milliseconds: 180),
+      )..addListener(
+        () => setState(() => _dragDy = _settleFrom * (1 - _settle.value)),
+      );
   double _settleFrom = 0;
 
   static const _sideBand = 0.3;
@@ -66,7 +73,11 @@ class _ViewerScreenState extends State<ViewerScreen> with SingleTickerProviderSt
   void _go(int delta) {
     final target = _index + delta;
     if (target < 0 || target >= widget.items.length) return;
-    _pages.animateToPage(target, duration: const Duration(milliseconds: 250), curve: Curves.easeOut);
+    _pages.animateToPage(
+      target,
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.easeOut,
+    );
   }
 
   void _close() => Navigator.of(context).maybePop();
@@ -122,36 +133,53 @@ class _ViewerScreenState extends State<ViewerScreen> with SingleTickerProviderSt
         color: Colors.black.withValues(alpha: fade),
         child: Stack(
           children: [
-            GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTapUp: _onTapUp,
-              // While zoomed, vertical drags pan the photo instead of closing.
-              onVerticalDragUpdate: _zoomed ? null : (d) => setState(() => _dragDy += d.delta.dy),
-              onVerticalDragEnd: _zoomed ? null : _onDragEnd,
-              child: Transform.translate(
-                offset: Offset(0, _dragDy),
-                child: Transform.scale(
-                  scale: 1 - math.min(_dragDy.abs() / 2000, 0.15),
-                  child: PhotoViewGallery.builder(
-                    itemCount: widget.items.length,
-                    pageController: _pages,
-                    backgroundDecoration: const BoxDecoration(color: Colors.transparent),
-                    onPageChanged: (i) => setState(() {
-                      _index = i;
-                      _zoomed = false;
-                    }),
-                    scaleStateChangedCallback: (s) =>
-                        setState(() => _zoomed = s != PhotoViewScaleState.initial),
-                    builder: (context, i) => _page(app, i),
+            Listener(
+              onPointerSignal: (e) {
+                if (e is PointerScrollEvent && !_zoomed) {
+                  _go(e.scrollDelta.dy > 0 ? 1 : -1);
+                }
+              },
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTapUp: _onTapUp,
+                // While zoomed, vertical drags pan the photo instead of closing.
+                onVerticalDragUpdate: _zoomed
+                    ? null
+                    : (d) => setState(() => _dragDy += d.delta.dy),
+                onVerticalDragEnd: _zoomed ? null : _onDragEnd,
+                child: Transform.translate(
+                  offset: Offset(0, _dragDy),
+                  child: Transform.scale(
+                    scale: 1 - math.min(_dragDy.abs() / 2000, 0.15),
+                    child: PhotoViewGallery.builder(
+                      itemCount: widget.items.length,
+                      pageController: _pages,
+                      backgroundDecoration: const BoxDecoration(
+                        color: Colors.transparent,
+                      ),
+                      onPageChanged: (i) => setState(() {
+                        _index = i;
+                        _zoomed = false;
+                      }),
+                      scaleStateChangedCallback: (s) => setState(
+                        () => _zoomed = s != PhotoViewScaleState.initial,
+                      ),
+                      builder: (context, i) => _page(app, i),
+                    ),
                   ),
                 ),
               ),
             ),
-            _TopBar(
-              title: item.name,
-              subtitle: '${_index + 1} / ${widget.items.length}',
-              opacity: fade,
-              onBack: _close,
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: _TopBar(
+                title: item.name,
+                subtitle: '${_index + 1} / ${widget.items.length}',
+                opacity: fade,
+                onBack: _close,
+              ),
             ),
           ],
         ),
@@ -208,7 +236,9 @@ class _FullImageState extends State<_FullImage> {
       builder: (context, snap) {
         if (snap.hasError) return _error('${snap.error}');
         if (!snap.hasData) {
-          return const Center(child: CircularProgressIndicator(color: Colors.white70));
+          return const Center(
+            child: CircularProgressIndicator(color: Colors.white70),
+          );
         }
         return Image.file(
           snap.data!,
@@ -221,18 +251,26 @@ class _FullImageState extends State<_FullImage> {
   }
 
   Widget _error(String text) => Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.broken_image_outlined, color: Colors.white54, size: 48),
-              const SizedBox(height: 8),
-              Text(text, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white70)),
-            ],
+    child: Padding(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(
+            Icons.broken_image_outlined,
+            color: Colors.white54,
+            size: 48,
           ),
-        ),
-      );
+          const SizedBox(height: 8),
+          Text(
+            text,
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: Colors.white70),
+          ),
+        ],
+      ),
+    ),
+  );
 }
 
 class _TopBar extends StatelessWidget {
@@ -270,13 +308,22 @@ class _TopBar extends StatelessWidget {
               ),
               Expanded(
                 child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(color: Colors.white, fontSize: 15)),
-                    Text(subtitle, style: const TextStyle(color: Colors.white70, fontSize: 12)),
+                    Text(
+                      title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(color: Colors.white, fontSize: 15),
+                    ),
+                    Text(
+                      subtitle,
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 12,
+                      ),
+                    ),
                   ],
                 ),
               ),

@@ -31,7 +31,10 @@ class SftpSource extends RemoteSource {
           username: config.username,
           identities: key.isEmpty
               ? null
-              : SSHKeyPair.fromPem(key, config.password.isEmpty ? null : config.password),
+              : SSHKeyPair.fromPem(
+                  key,
+                  config.password.isEmpty ? null : config.password,
+                ),
           onPasswordRequest: () => config.password,
         );
         _client = client;
@@ -64,15 +67,21 @@ class SftpSource extends RemoteSource {
       }
       final kind = kindFromName(name);
       if (kind == null) continue;
-      media.add(MediaItem(
-        path: full,
-        name: name,
-        kind: kind,
-        modified: DateTime.fromMillisecondsSinceEpoch((e.attr.modifyTime ?? 0) * 1000),
-        size: e.attr.size,
-      ));
+      media.add(
+        MediaItem(
+          path: full,
+          name: name,
+          kind: kind,
+          modified: DateTime.fromMillisecondsSinceEpoch(
+            (e.attr.modifyTime ?? 0) * 1000,
+          ),
+          size: e.attr.size,
+        ),
+      );
     }
-    folders.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+    folders.sort(
+      (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
+    );
     sortNewestFirst(media);
     return Listing(folders, media);
   }

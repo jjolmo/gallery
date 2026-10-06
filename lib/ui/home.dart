@@ -36,7 +36,8 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _drawer(AppState app, FolderRef current) {
     final theme = Theme.of(context);
 
-    Widget tile(FolderRef f, IconData icon, {VoidCallback? onLongPress}) => ListTile(
+    Widget tile(FolderRef f, IconData icon, {VoidCallback? onLongPress}) =>
+        ListTile(
           leading: Icon(icon),
           title: Text(f.title, maxLines: 1, overflow: TextOverflow.ellipsis),
           subtitle: f.subtitle == null
@@ -48,17 +49,21 @@ class _HomeScreenState extends State<HomeScreen> {
         );
 
     Widget header(String text, {Widget? trailing}) => Padding(
-          padding: const EdgeInsets.fromLTRB(16, 16, 8, 4),
-          child: Row(
-            children: [
-              Expanded(
-                child: Text(text,
-                    style: theme.textTheme.labelLarge?.copyWith(color: theme.colorScheme.primary)),
+      padding: const EdgeInsets.fromLTRB(16, 16, 8, 4),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              text,
+              style: theme.textTheme.labelLarge?.copyWith(
+                color: theme.colorScheme.primary,
               ),
-              ?trailing,
-            ],
+            ),
           ),
-        );
+          ?trailing,
+        ],
+      ),
+    );
 
     return NavigationDrawer(
       children: [
@@ -89,15 +94,11 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
         for (final r in app.remotes)
-          tile(
-            app.folderForRemote(r),
-            switch (r.type) {
-              RemoteType.sftp => Icons.terminal,
-              RemoteType.webdav => Icons.cloud_outlined,
-              RemoteType.seafile => Icons.cloud_sync_outlined,
-            },
-            onLongPress: () => _remoteMenu(r),
-          ),
+          tile(app.folderForRemote(r), switch (r.type) {
+            RemoteType.sftp => Icons.terminal,
+            RemoteType.webdav => Icons.cloud_outlined,
+            RemoteType.seafile => Icons.cloud_sync_outlined,
+          }, onLongPress: () => _remoteMenu(r)),
         if (app.remotes.isEmpty)
           ListTile(
             leading: const Icon(Icons.add_link),
@@ -110,7 +111,9 @@ class _HomeScreenState extends State<HomeScreen> {
           title: const Text('Settings'),
           onTap: () {
             Navigator.of(context).pop();
-            Navigator.of(context).push(MaterialPageRoute(builder: (_) => const SettingsScreen()));
+            Navigator.of(
+              context,
+            ).push(MaterialPageRoute(builder: (_) => const SettingsScreen()));
           },
         ),
       ],

@@ -84,13 +84,18 @@ class _VideoPageState extends State<VideoPage> {
   Widget build(BuildContext context) {
     if (_error != null) {
       return Center(
-        child: Text('Can\'t play ${widget.item.name}\n$_error',
-            textAlign: TextAlign.center, style: const TextStyle(color: Colors.white70)),
+        child: Text(
+          'Can\'t play ${widget.item.name}\n$_error',
+          textAlign: TextAlign.center,
+          style: const TextStyle(color: Colors.white70),
+        ),
       );
     }
     final backend = _backend;
     if (backend == null) {
-      return const Center(child: CircularProgressIndicator(color: Colors.white70));
+      return const Center(
+        child: CircularProgressIndicator(color: Colors.white70),
+      );
     }
     return Stack(
       children: [
@@ -135,8 +140,11 @@ class _ExoBackend extends _Backend {
 
   @override
   Widget view() => Center(
-        child: AspectRatio(aspectRatio: _c!.value.aspectRatio, child: VideoPlayer(_c!)),
-      );
+    child: AspectRatio(
+      aspectRatio: _c!.value.aspectRatio,
+      child: VideoPlayer(_c!),
+    ),
+  );
 
   @override
   bool get playing => _c?.value.isPlaying ?? false;
@@ -235,15 +243,21 @@ class _Controls extends StatelessWidget {
               IconButton(
                 iconSize: 32,
                 color: Colors.white,
-                icon: Icon(b.playing ? Icons.pause_rounded : Icons.play_arrow_rounded),
+                icon: Icon(
+                  b.playing ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                ),
                 onPressed: b.toggle,
               ),
               Text(_fmt(b.position), style: label),
               Expanded(
                 child: Slider(
-                  value: max <= 0 ? 0 : b.position.inMilliseconds.clamp(0, max).toDouble(),
+                  value: max <= 0
+                      ? 0
+                      : b.position.inMilliseconds.clamp(0, max).toDouble(),
                   max: max <= 0 ? 1 : max,
-                  onChanged: max <= 0 ? null : (v) => b.seek(Duration(milliseconds: v.round())),
+                  onChanged: max <= 0
+                      ? null
+                      : (v) => b.seek(Duration(milliseconds: v.round())),
                 ),
               ),
               Text(_fmt(b.duration), style: label),

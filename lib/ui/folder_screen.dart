@@ -31,7 +31,8 @@ class _FolderScreenState extends State<FolderScreen> {
     _listing = _load();
   }
 
-  MediaSource get _source => AppScope.read(context).sourceFor(widget.folder.sourceId);
+  MediaSource get _source =>
+      AppScope.read(context).sourceFor(widget.folder.sourceId);
 
   Future<Listing> _load() => _source.list(widget.folder.path);
 
@@ -57,10 +58,12 @@ class _FolderScreenState extends State<FolderScreen> {
         ],
       ),
       body: !app.hasMediaAccess && !widget.folder.remote
-          ? _NoAccess(onRetry: () async {
-              await app.reloadLocal();
-              await _refresh();
-            })
+          ? _NoAccess(
+              onRetry: () async {
+                await app.reloadLocal();
+                await _refresh();
+              },
+            )
           : FutureBuilder<Listing>(
               future: _listing,
               builder: (context, snap) {
@@ -68,10 +71,15 @@ class _FolderScreenState extends State<FolderScreen> {
                   return _Message(
                     icon: Icons.cloud_off,
                     text: '${snap.error}',
-                    action: FilledButton(onPressed: _refresh, child: const Text('Retry')),
+                    action: FilledButton(
+                      onPressed: _refresh,
+                      child: const Text('Retry'),
+                    ),
                   );
                 }
-                if (!snap.hasData) return const Center(child: CircularProgressIndicator());
+                if (!snap.hasData) {
+                  return const Center(child: CircularProgressIndicator());
+                }
                 return _content(app, snap.data!);
               },
             ),
@@ -85,10 +93,15 @@ class _FolderScreenState extends State<FolderScreen> {
     if (listing.folders.isEmpty && media.isEmpty) {
       return RefreshIndicator(
         onRefresh: _refresh,
-        child: ListView(children: const [
-          SizedBox(height: 160),
-          _Message(icon: Icons.photo_library_outlined, text: 'No photos or videos here'),
-        ]),
+        child: ListView(
+          children: const [
+            SizedBox(height: 160),
+            _Message(
+              icon: Icons.photo_library_outlined,
+              text: 'No photos or videos here',
+            ),
+          ],
+        ),
       );
     }
 
@@ -107,16 +120,18 @@ class _FolderScreenState extends State<FolderScreen> {
               return ListTile(
                 leading: const Icon(Icons.folder_outlined),
                 title: Text(f.name),
-                onTap: () => Navigator.of(context).push(MaterialPageRoute(
-                  builder: (_) => FolderScreen(
-                    folder: FolderRef(
-                      title: f.name,
-                      sourceId: widget.folder.sourceId,
-                      path: f.path,
-                      remote: widget.folder.remote,
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => FolderScreen(
+                      folder: FolderRef(
+                        title: f.name,
+                        sourceId: widget.folder.sourceId,
+                        path: f.path,
+                        remote: widget.folder.remote,
+                      ),
                     ),
                   ),
-                )),
+                ),
               );
             },
           ),
@@ -130,14 +145,25 @@ class _FolderScreenState extends State<FolderScreen> {
               ),
               itemCount: media.length,
               itemBuilder: (context, i) => GestureDetector(
-                onTap: () => Navigator.of(context).push(PageRouteBuilder(
-                  opaque: false,
-                  pageBuilder: (_, _, _) => ViewerScreen(source: _source, items: media, initialIndex: i),
-                  transitionsBuilder: (_, anim, _, child) => FadeTransition(opacity: anim, child: child),
-                )),
+                onTap: () => Navigator.of(context).push(
+                  PageRouteBuilder(
+                    opaque: false,
+                    pageBuilder: (_, _, _) => ViewerScreen(
+                      source: _source,
+                      items: media,
+                      initialIndex: i,
+                    ),
+                    transitionsBuilder: (_, anim, _, child) =>
+                        FadeTransition(opacity: anim, child: child),
+                  ),
+                ),
                 child: Hero(
                   tag: '${_source.id}|${media[i].path}',
-                  child: MediaThumb(source: _source, item: media[i], size: thumbPx),
+                  child: MediaThumb(
+                    source: _source,
+                    item: media[i],
+                    size: thumbPx,
+                  ),
                 ),
               ),
             ),
@@ -162,7 +188,10 @@ class _NoAccess extends StatelessWidget {
         children: [
           FilledButton(onPressed: onRetry, child: const Text('Grant access')),
           if (Platform.isAndroid)
-            OutlinedButton(onPressed: PhotoManager.openSetting, child: const Text('Open settings')),
+            OutlinedButton(
+              onPressed: PhotoManager.openSetting,
+              child: const Text('Open settings'),
+            ),
         ],
       ),
     );
@@ -186,7 +215,11 @@ class _Message extends StatelessWidget {
           children: [
             Icon(icon, size: 48, color: s.onSurfaceVariant),
             const SizedBox(height: 12),
-            Text(text, textAlign: TextAlign.center, style: TextStyle(color: s.onSurfaceVariant)),
+            Text(
+              text,
+              textAlign: TextAlign.center,
+              style: TextStyle(color: s.onSurfaceVariant),
+            ),
             if (action != null) ...[const SizedBox(height: 16), action!],
           ],
         ),

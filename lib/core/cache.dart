@@ -25,7 +25,9 @@ class MediaCache {
   ) async {
     final d = await dir;
     // Keep the extension: the image and video decoders sniff by it.
-    final file = File(p.join(d.path, '${_fnv1a(key)}${p.extension(name).toLowerCase()}'));
+    final file = File(
+      p.join(d.path, '${_fnv1a(key)}${p.extension(name).toLowerCase()}'),
+    );
     if (await file.exists() && await file.length() > 0) return file;
 
     final part = File('${file.path}.part');

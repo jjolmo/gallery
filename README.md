@@ -17,12 +17,15 @@ It shows the media on the device and can also browse folders on **SFTP/SSH**,
   are listed under *Remote folders*, and you can open their subfolders. Long-press
   one to edit or remove it.
 - **Formats:** JPEG, PNG, WebP, BMP, animated GIF, and MP4, MOV, WebM and MKV
-  videos (played with libmpv).
+  videos.
+- **Lightweight:** the arm64 APK is about 10 MB. No video engine is bundled:
+  Android plays videos with the system's ExoPlayer and Linux uses the system libmpv.
 - **Full-screen viewer:**
   - Tap the left or right band, or swipe sideways, to go to the previous or next item.
   - Tap the center band, or swipe up or down, to close the viewer.
   - Pinch or double-tap to zoom.
-  - On desktop, the arrow keys move between items and Esc closes the viewer.
+  - On desktop, the mouse wheel or the arrow keys move between items, and Esc
+    closes the viewer.
 
 ## Install
 
@@ -62,6 +65,9 @@ flutter pub get
 flutter run -d linux        # needs clang, cmake, ninja, libgtk-3-dev and libmpv-dev
 flutter build apk --release
 ```
+
+Tests: `flutter test`. The live connector tests in `test_live/` need a WebDAV
+server and an SFTP login (see the file).
 
 CI ([`.github/workflows/build.yml`](.github/workflows/build.yml)) builds the
 Android APKs and the Linux arm64 and x64 bundles on every push. Pushing a `v*` tag

@@ -21,7 +21,9 @@ class _RemoteFormState extends State<RemoteForm> {
   late RemoteType _type = widget.existing?.type ?? RemoteType.sftp;
   late final _name = TextEditingController(text: widget.existing?.name);
   late final _host = TextEditingController(text: widget.existing?.host);
-  late final _port = TextEditingController(text: widget.existing?.port?.toString());
+  late final _port = TextEditingController(
+    text: widget.existing?.port?.toString(),
+  );
   late final _user = TextEditingController(text: widget.existing?.username);
   late final _password = TextEditingController(text: widget.existing?.password);
   late final _key = TextEditingController(text: widget.existing?.privateKey);
@@ -32,24 +34,35 @@ class _RemoteFormState extends State<RemoteForm> {
 
   @override
   void dispose() {
-    for (final c in [_name, _host, _port, _user, _password, _key, _path, _library]) {
+    for (final c in [
+      _name,
+      _host,
+      _port,
+      _user,
+      _password,
+      _key,
+      _path,
+      _library,
+    ]) {
       c.dispose();
     }
     super.dispose();
   }
 
   RemoteConfig _build() => RemoteConfig(
-        id: widget.existing?.id ?? DateTime.now().microsecondsSinceEpoch.toRadixString(36),
-        type: _type,
-        name: _name.text.trim().isEmpty ? _host.text.trim() : _name.text.trim(),
-        host: _host.text.trim(),
-        port: int.tryParse(_port.text.trim()),
-        username: _user.text.trim(),
-        password: _password.text,
-        privateKey: _type == RemoteType.sftp ? _key.text : '',
-        path: _path.text.trim().isEmpty ? '/' : _path.text.trim(),
-        library: _type == RemoteType.seafile ? _library.text.trim() : '',
-      );
+    id:
+        widget.existing?.id ??
+        DateTime.now().microsecondsSinceEpoch.toRadixString(36),
+    type: _type,
+    name: _name.text.trim().isEmpty ? _host.text.trim() : _name.text.trim(),
+    host: _host.text.trim(),
+    port: int.tryParse(_port.text.trim()),
+    username: _user.text.trim(),
+    password: _password.text,
+    privateKey: _type == RemoteType.sftp ? _key.text : '',
+    path: _path.text.trim().isEmpty ? '/' : _path.text.trim(),
+    library: _type == RemoteType.seafile ? _library.text.trim() : '',
+  );
 
   Future<void> _test() async {
     if (!_form.currentState!.validate()) return;
@@ -64,9 +77,12 @@ class _RemoteFormState extends State<RemoteForm> {
       _status = 'Connecting…';
     });
     try {
-      final path = c.type == RemoteType.webdav ? (s as WebDavSource).rootPath : c.path;
+      final path = c.type == RemoteType.webdav
+          ? (s as WebDavSource).rootPath
+          : c.path;
       final l = await s.list(path).timeout(const Duration(seconds: 30));
-      _status = 'OK: ${l.folders.length} folders, ${l.media.length} photos/videos';
+      _status =
+          'OK: ${l.folders.length} folders, ${l.media.length} photos/videos';
     } catch (e) {
       _status = 'Failed: $e';
     } finally {
@@ -89,11 +105,14 @@ class _RemoteFormState extends State<RemoteForm> {
       RemoteType.webdav => 'Folder URL (e.g. https://cloud.example.com/remote.php/dav/files/me/Photos)',
       RemoteType.seafile => 'Server URL (e.g. https://seafile.example.com)',
     };
-    String? required(String? v) => (v == null || v.trim().isEmpty) ? 'Required' : null;
+    String? required(String? v) =>
+        (v == null || v.trim().isEmpty) ? 'Required' : null;
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.existing == null ? 'Add remote folder' : 'Edit remote folder'),
+        title: Text(
+          widget.existing == null ? 'Add remote folder' : 'Edit remote folder',
+        ),
       ),
       body: Form(
         key: _form,
@@ -102,24 +121,33 @@ class _RemoteFormState extends State<RemoteForm> {
           children: [
             SegmentedButton<RemoteType>(
               segments: [
-                for (final t in RemoteType.values) ButtonSegment(value: t, label: Text(t.label)),
+                for (final t in RemoteType.values)
+                  ButtonSegment(value: t, label: Text(t.label)),
               ],
               selected: {_type},
               onSelectionChanged: (s) => setState(() => _type = s.first),
             ),
             const SizedBox(height: 16),
-            TextFormField(controller: _name, decoration: const InputDecoration(labelText: 'Name (optional)')),
+            TextFormField(
+              controller: _name,
+              decoration: const InputDecoration(labelText: 'Name (optional)'),
+            ),
             TextFormField(
               controller: _host,
               validator: required,
-              keyboardType: _type == RemoteType.sftp ? TextInputType.text : TextInputType.url,
+              keyboardType: _type == RemoteType.sftp
+                  ? TextInputType.text
+                  : TextInputType.url,
               decoration: InputDecoration(labelText: hostLabel),
             ),
             if (_type == RemoteType.sftp)
               TextFormField(
                 controller: _port,
                 keyboardType: TextInputType.number,
-                decoration: const InputDecoration(labelText: 'Port', hintText: '22'),
+                decoration: const InputDecoration(
+                  labelText: 'Port',
+                  hintText: '22',
+                ),
               ),
             TextFormField(
               controller: _user,
@@ -130,7 +158,9 @@ class _RemoteFormState extends State<RemoteForm> {
               controller: _password,
               obscureText: true,
               decoration: InputDecoration(
-                labelText: _type == RemoteType.sftp ? 'Password or key passphrase' : 'Password',
+                labelText: _type == RemoteType.sftp
+                    ? 'Password or key passphrase'
+                    : 'Password',
               ),
             ),
             if (_type == RemoteType.sftp)
@@ -154,18 +184,29 @@ class _RemoteFormState extends State<RemoteForm> {
               TextFormField(
                 controller: _path,
                 decoration: InputDecoration(
-                  labelText: _type == RemoteType.seafile ? 'Folder inside the library' : 'Folder',
+                  labelText: _type == RemoteType.seafile
+                      ? 'Folder inside the library'
+                      : 'Folder',
                   hintText: '/',
                 ),
               ),
             const SizedBox(height: 24),
             if (_status != null)
-              Padding(padding: const EdgeInsets.only(bottom: 12), child: Text(_status!)),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Text(_status!),
+              ),
             Row(
               children: [
-                OutlinedButton(onPressed: _busy ? null : _test, child: const Text('Test')),
+                OutlinedButton(
+                  onPressed: _busy ? null : _test,
+                  child: const Text('Test'),
+                ),
                 const Spacer(),
-                FilledButton(onPressed: _busy ? null : _save, child: const Text('Save')),
+                FilledButton(
+                  onPressed: _busy ? null : _save,
+                  child: const Text('Save'),
+                ),
               ],
             ),
           ],

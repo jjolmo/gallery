@@ -32,7 +32,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
               label: '${app.columns}',
               onChanged: (v) => app.columns = v.round(),
             ),
-            trailing: Text('${app.columns}', style: Theme.of(context).textTheme.titleMedium),
+            trailing: Text(
+              '${app.columns}',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
           ),
           SwitchListTile(
             title: const Text('Show videos'),
@@ -50,7 +53,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
               value: app.themeMode,
               onChanged: (v) => app.themeMode = v!,
               items: const [
-                DropdownMenuItem(value: ThemeMode.system, child: Text('System')),
+                DropdownMenuItem(
+                  value: ThemeMode.system,
+                  child: Text('System'),
+                ),
                 DropdownMenuItem(value: ThemeMode.dark, child: Text('Dark')),
                 DropdownMenuItem(value: ThemeMode.light, child: Text('Light')),
               ],

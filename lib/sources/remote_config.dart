@@ -2,10 +2,10 @@ enum RemoteType { sftp, webdav, seafile }
 
 extension RemoteTypeLabel on RemoteType {
   String get label => switch (this) {
-        RemoteType.sftp => 'SFTP / SSH',
-        RemoteType.webdav => 'WebDAV',
-        RemoteType.seafile => 'Seafile',
-      };
+    RemoteType.sftp => 'SFTP / SSH',
+    RemoteType.webdav => 'WebDAV',
+    RemoteType.seafile => 'Seafile',
+  };
 }
 
 class RemoteConfig {
@@ -42,28 +42,28 @@ class RemoteConfig {
   final String library;
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'type': type.name,
-        'name': name,
-        'host': host,
-        'port': port,
-        'username': username,
-        'password': password,
-        'privateKey': privateKey,
-        'path': path,
-        'library': library,
-      };
+    'id': id,
+    'type': type.name,
+    'name': name,
+    'host': host,
+    'port': port,
+    'username': username,
+    'password': password,
+    'privateKey': privateKey,
+    'path': path,
+    'library': library,
+  };
 
   factory RemoteConfig.fromJson(Map<String, dynamic> j) => RemoteConfig(
-        id: j['id'] as String,
-        type: RemoteType.values.byName(j['type'] as String),
-        name: j['name'] as String,
-        host: j['host'] as String,
-        port: j['port'] as int?,
-        username: j['username'] as String? ?? '',
-        password: j['password'] as String? ?? '',
-        privateKey: j['privateKey'] as String? ?? '',
-        path: j['path'] as String? ?? '/',
-        library: j['library'] as String? ?? '',
-      );
+    id: j['id'] as String,
+    type: RemoteType.values.byName(j['type'] as String),
+    name: j['name'] as String,
+    host: j['host'] as String,
+    port: j['port'] as int?,
+    username: j['username'] as String? ?? '',
+    password: j['password'] as String? ?? '',
+    privateKey: j['privateKey'] as String? ?? '',
+    path: j['path'] as String? ?? '/',
+    library: j['library'] as String? ?? '',
+  );
 }
