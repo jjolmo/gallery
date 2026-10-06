@@ -17,6 +17,38 @@ abstract class MediaSource {
   /// The full file on local disk, downloading it first if needed.
   Future<File> localFile(MediaItem item);
 
+  /// Media in [path] and all its subfolders, one batch per folder as they
+  /// are found (breadth first), so a grid can fill while the walk goes on.
+  /// Unreadable subfolders are skipped; only a failure on [path] is thrown.
+  Stream<List<MediaItem>> walk(String path) async* {
+    final queue = <(String, int)>[(path, 0)];
+    final seen = <String>{};
+    while (queue.isNotEmpty) {
+      final (dir, depth) = queue.removeAt(0);
+      if (!seen.add(dir)) continue;
+      Listing listing;
+      try {
+        listing = await list(dir);
+      } catch (_) {
+        if (dir == path) rethrow;
+        continue;
+      }
+      final media = [...listing.media];
+      final more = listing.more;
+      if (more != null) {
+        for (var page = await more(); page.isNotEmpty; page = await more()) {
+          media.addAll(page);
+        }
+      }
+      if (media.isNotEmpty) yield media;
+      if (depth < _maxWalkDepth) {
+        queue.addAll([for (final f in listing.folders) (f.path, depth + 1)]);
+      }
+    }
+  }
+
+  static const _maxWalkDepth = 16;
+
   Future<void> close() async {}
 }
 

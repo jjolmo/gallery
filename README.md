@@ -19,6 +19,11 @@ It shows the media on the device and can also browse folders on **SFTP/SSH**,
 - **Remote folders:** add SFTP, WebDAV or Seafile locations from the menu. They
   are listed under *Remote folders*, and you can open their subfolders. Long-press
   one to edit or remove it.
+- **Everything inside a folder:** long-press any folder (in the menu or in a
+  folder's list) and pick *Show everything inside* to get one grid with the
+  photos and videos of all its subfolders. It fills in while the subfolders are
+  read, and the viewer swipes through all of it. On Android, where albums are
+  flat, this means the folder plus every album below its path.
 - **Formats:** JPEG, PNG, WebP, BMP, animated GIF, and MP4, MOV, WebM and MKV
   videos.
 - **Lightweight:** the arm64 APK is about 10 MB. No video engine is bundled:

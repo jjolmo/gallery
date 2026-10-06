@@ -6,8 +6,8 @@ import 'package:photo_manager/photo_manager.dart';
 import '../core/app_state.dart';
 import '../core/models.dart';
 import '../sources/source.dart';
-import 'thumbnail.dart';
-import 'viewer.dart';
+import 'media_grid.dart';
+import 'recursive_screen.dart';
 
 /// A folder's subfolders and a grid of its media.
 class FolderScreen extends StatefulWidget {
@@ -141,10 +141,6 @@ class _FolderScreenState extends State<FolderScreen> {
       );
     }
 
-    final dpr = MediaQuery.devicePixelRatioOf(context);
-    final width = MediaQuery.sizeOf(context).width;
-    final thumbPx = (width / app.columns * dpr).clamp(64, 1024).round();
-
     return RefreshIndicator(
       onRefresh: _refresh,
       child: CustomScrollView(
@@ -153,63 +149,28 @@ class _FolderScreenState extends State<FolderScreen> {
             itemCount: listing.folders.length,
             itemBuilder: (context, i) {
               final f = listing.folders[i];
+              final ref = FolderRef(
+                title: f.name,
+                sourceId: widget.folder.sourceId,
+                path: f.path,
+                remote: widget.folder.remote,
+              );
+              void open() => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => FolderScreen(folder: ref)),
+              );
               return ListTile(
                 leading: const Icon(Icons.folder_outlined),
                 title: Text(f.name),
-                onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => FolderScreen(
-                      folder: FolderRef(
-                        title: f.name,
-                        sourceId: widget.folder.sourceId,
-                        path: f.path,
-                        remote: widget.folder.remote,
-                      ),
-                    ),
-                  ),
-                ),
+                onTap: open,
+                onLongPress: () =>
+                    showFolderActions(context, ref, onOpen: open),
               );
             },
           ),
-          SliverPadding(
-            padding: const EdgeInsets.all(2),
-            sliver: SliverGrid.builder(
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: app.columns,
-                mainAxisSpacing: 2,
-                crossAxisSpacing: 2,
-              ),
-              itemCount: media.length,
-              itemBuilder: (context, i) {
-                if (_more != null && i > media.length - 90) {
-                  WidgetsBinding.instance.addPostFrameCallback(
-                    (_) => _loadMore(),
-                  );
-                }
-                return GestureDetector(
-                  onTap: () => Navigator.of(context).push(
-                    PageRouteBuilder(
-                      opaque: false,
-                      pageBuilder: (_, _, _) => ViewerScreen(
-                        source: _source,
-                        items: media,
-                        initialIndex: i,
-                      ),
-                      transitionsBuilder: (_, anim, _, child) =>
-                          FadeTransition(opacity: anim, child: child),
-                    ),
-                  ),
-                  child: Hero(
-                    tag: '${_source.id}|${media[i].path}',
-                    child: MediaThumb(
-                      source: _source,
-                      item: media[i],
-                      size: thumbPx,
-                    ),
-                  ),
-                );
-              },
-            ),
+          MediaGridSliver(
+            source: _source,
+            items: media,
+            onNearEnd: _more == null ? null : _loadMore,
           ),
         ],
       ),

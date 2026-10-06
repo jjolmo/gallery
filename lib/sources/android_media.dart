@@ -142,6 +142,39 @@ class AndroidMediaSource extends MediaSource {
     return Listing([], await next(_firstPage), more: () => next(_nextPage));
   }
 
+  /// Android albums are flat, so "subfolders" are worked out from paths: the
+  /// album's folder plus every album below it, e.g. Pictures/ with
+  /// Pictures/Screenshots/ and Pictures/Instagram/.
+  @override
+  Stream<List<MediaItem>> walk(String path) async* {
+    final album = await _album(path);
+    if (album == null) return;
+    final first = await album.getAssetListRange(start: 0, end: 1);
+    final prefix = first.isEmpty
+        ? null
+        : first.first.relativePath?.toLowerCase();
+    if (path == recentPath || prefix == null) {
+      // No path to compare (Recent, or Android 9 and older): just this album.
+      yield* super.walk(path);
+      return;
+    }
+    final all = await _album(recentPath);
+    if (all == null) return;
+    for (var start = 0; ; start += _nextPage) {
+      final assets = await all.getAssetListRange(
+        start: start,
+        end: start + _nextPage,
+      );
+      final batch = [
+        for (final a in assets)
+          if (a.relativePath?.toLowerCase().startsWith(prefix) ?? false)
+            ?_toItem(a),
+      ];
+      if (batch.isNotEmpty) yield batch;
+      if (assets.length < _nextPage) break;
+    }
+  }
+
   MediaItem? _toItem(AssetEntity a) {
     final name = a.title ?? a.id;
     final MediaKind kind;

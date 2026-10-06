@@ -22,11 +22,18 @@ class ViewerScreen extends StatefulWidget {
     required this.source,
     required this.items,
     required this.initialIndex,
+    this.updates,
   });
 
   final MediaSource source;
+
+  /// May keep growing while the viewer is open (see [updates]).
   final List<MediaItem> items;
   final int initialIndex;
+
+  /// Fires when [items] gets more entries, e.g. from a recursive walk, so
+  /// swiping can carry on into media found after the viewer opened.
+  final Listenable? updates;
 
   @override
   State<ViewerScreen> createState() => _ViewerScreenState();
@@ -59,11 +66,17 @@ class _ViewerScreenState extends State<ViewerScreen>
   void initState() {
     super.initState();
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+    widget.updates?.addListener(_grew);
+  }
+
+  void _grew() {
+    if (mounted) setState(() {});
   }
 
   @override
   void dispose() {
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    widget.updates?.removeListener(_grew);
     _pages.dispose();
     _settle.dispose();
     _focus.dispose();

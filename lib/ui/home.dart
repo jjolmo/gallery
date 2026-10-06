@@ -4,6 +4,7 @@ import '../core/app_state.dart';
 import '../core/models.dart';
 import '../sources/remote_config.dart';
 import 'folder_screen.dart';
+import 'recursive_screen.dart';
 import 'remote_form.dart';
 import 'settings_screen.dart';
 
@@ -55,7 +56,7 @@ class _HomeScreenState extends State<HomeScreen> {
               : Text(f.subtitle!, maxLines: 1, overflow: TextOverflow.ellipsis),
           selected: f.key == current.key,
           onTap: () => _open(f),
-          onLongPress: onLongPress,
+          onLongPress: onLongPress ?? () => _folderMenu(f),
         );
 
     Widget header(String text, {Widget? trailing}) => Padding(
@@ -152,6 +153,17 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  void _openRecursive(FolderRef f) =>
+      Navigator.of(context)
+          .push(MaterialPageRoute(builder: (_) => RecursiveScreen(folder: f)));
+
+  /// Long-press on a device folder: close the drawer, then offer to open it
+  /// or to show everything inside it.
+  void _folderMenu(FolderRef f) {
+    Navigator.of(context).pop();
+    showFolderActions(context, f, onOpen: () => setState(() => _current = f));
+  }
+
   Future<void> _remoteMenu(RemoteConfig r) async {
     final action = await showModalBottomSheet<String>(
       context: context,
@@ -160,6 +172,12 @@ class _HomeScreenState extends State<HomeScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(title: Text(r.name), subtitle: Text(r.type.label)),
+            ListTile(
+              leading: const Icon(Icons.photo_library_outlined),
+              title: const Text('Show everything inside'),
+              subtitle: const Text('Photos and videos from all subfolders'),
+              onTap: () => Navigator.pop(context, 'all'),
+            ),
             ListTile(
               leading: const Icon(Icons.edit_outlined),
               title: const Text('Edit'),
@@ -176,7 +194,10 @@ class _HomeScreenState extends State<HomeScreen> {
     );
     if (!mounted) return;
     final app = AppScope.read(context);
-    if (action == 'edit') {
+    if (action == 'all') {
+      Navigator.of(context).pop();
+      _openRecursive(app.folderForRemote(r));
+    } else if (action == 'edit') {
       await _editRemote(r);
     } else if (action == 'delete') {
       Navigator.of(context).pop();

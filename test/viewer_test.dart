@@ -167,6 +167,38 @@ void main() {
     expect(find.text('3 / 3'), findsOneWidget);
   });
 
+  testWidgets('viewer keeps going when the list grows', (tester) async {
+    final grown = [...items.take(2)];
+    final updates = ValueNotifier(0);
+    SharedPreferences.setMockInitialValues({});
+    final state = AppState();
+    await state.initForTest();
+    tester.view.physicalSize = const Size(1200, 800);
+    tester.view.devicePixelRatio = 1;
+    await tester.pumpWidget(
+      AppScope(
+        state: state,
+        child: MaterialApp(
+          home: ViewerScreen(
+            source: _FakeSource(),
+            items: grown,
+            initialIndex: 1,
+            updates: updates,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('2 / 2'), findsOneWidget);
+
+    grown.add(items[2]);
+    updates.value++;
+    await tester.pumpAndSettle();
+    await tester.tapAt(const Offset(1150, 400));
+    await tester.pumpAndSettle(const Duration(milliseconds: 400));
+    expect(find.text('3 / 3'), findsOneWidget);
+  });
+
   testWidgets('tap on the center band closes', (tester) async {
     await open(tester);
     await tester.tapAt(const Offset(600, 400));
