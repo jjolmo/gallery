@@ -14,6 +14,7 @@ import '../sources/sftp_source.dart';
 import '../sources/source.dart';
 import '../sources/webdav_source.dart';
 import 'models.dart';
+import 'view_options.dart';
 
 class AppState extends ChangeNotifier {
   late SharedPreferences _prefs;
@@ -35,8 +36,22 @@ class AppState extends ChangeNotifier {
   int get columns => _prefs.getInt('columns') ?? 3;
   set columns(int v) => _set(() => _prefs.setInt('columns', v));
 
-  bool get showVideos => _prefs.getBool('showVideos') ?? true;
-  set showVideos(bool v) => _set(() => _prefs.setBool('showVideos', v));
+  /// Type filter for every grid. Falls back to the old "Show videos" switch.
+  MediaFilter get filter {
+    final saved = _prefs.getString('filter');
+    if (saved != null) return MediaFilter.values.byName(saved);
+    return _prefs.getBool('showVideos') == false
+        ? MediaFilter.photos
+        : MediaFilter.all;
+  }
+
+  set filter(MediaFilter v) => _set(() => _prefs.setString('filter', v.name));
+
+  /// Sort order for folders; the recursive view keeps its own.
+  SortOrder get sort => SortOrder.values.byName(
+    _prefs.getString('sort') ?? SortOrder.newest.name,
+  );
+  set sort(SortOrder v) => _set(() => _prefs.setString('sort', v.name));
 
   bool get autoplayVideos => _prefs.getBool('autoplayVideos') ?? true;
   set autoplayVideos(bool v) => _set(() => _prefs.setBool('autoplayVideos', v));
@@ -66,9 +81,9 @@ class AppState extends ChangeNotifier {
   }
 
   @visibleForTesting
-  Future<void> initForTest() async {
+  Future<void> initForTest({MediaSource? local}) async {
     _prefs = await SharedPreferences.getInstance();
-    localSource = LocalFsSource([]);
+    localSource = local ?? LocalFsSource([]);
     localReady = true;
   }
 

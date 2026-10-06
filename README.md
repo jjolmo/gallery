@@ -10,6 +10,10 @@ It shows the media on the device and can also browse folders on **SFTP/SSH**,
 
 - **Recent:** the newest photos and videos first, in a grid. The grid has 3
   columns by default; change it in *Settings* (2 to 8).
+- **Filter and sort:** two app bar buttons on every grid. Filter by type (all,
+  photos, videos, GIFs) and sort by newest, oldest or name. Both are remembered.
+  *Show everything inside* also offers folder order, its default, which keeps
+  the viewer following new finds while the walk goes on.
 - **Folders menu:** the side menu lists the device folders.
   - Android: the classic albums (Camera, Screenshots, Screen recordings, Download,
     Pictures, Movies, WhatsApp, Telegram, Instagram). Every other folder Android

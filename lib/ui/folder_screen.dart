@@ -5,9 +5,11 @@ import 'package:photo_manager/photo_manager.dart';
 
 import '../core/app_state.dart';
 import '../core/models.dart';
+import '../core/view_options.dart';
 import '../sources/source.dart';
 import 'media_grid.dart';
 import 'recursive_screen.dart';
+import 'view_buttons.dart';
 
 /// A folder's subfolders and a grid of its media.
 class FolderScreen extends StatefulWidget {
@@ -29,6 +31,7 @@ class _FolderScreenState extends State<FolderScreen> {
   List<MediaItem> _media = [];
   Future<List<MediaItem>> Function()? _more;
   bool _loadingMore = false;
+  bool _loadingAll = false;
 
   @override
   void initState() {
@@ -54,7 +57,7 @@ class _FolderScreenState extends State<FolderScreen> {
 
   Future<void> _loadMore() async {
     final more = _more;
-    if (more == null || _loadingMore || !mounted) return;
+    if (more == null || _loadingMore || _loadingAll || !mounted) return;
     _loadingMore = true;
     try {
       final next = await more();
@@ -67,6 +70,29 @@ class _FolderScreenState extends State<FolderScreen> {
       _more = null;
     } finally {
       _loadingMore = false;
+    }
+  }
+
+  /// Sorting by name or oldest first needs every page, not just the newest.
+  Future<void> _loadAll() async {
+    if (_loadingAll || _more == null) return;
+    setState(() => _loadingAll = true);
+    while (_loadingMore) {
+      await Future<void>.delayed(const Duration(milliseconds: 30));
+    }
+    try {
+      while (mounted && _more != null) {
+        final next = await _more!();
+        if (!mounted) return;
+        setState(() {
+          _media.addAll(next);
+          if (next.isEmpty) _more = null;
+        });
+      }
+    } catch (_) {
+      _more = null;
+    } finally {
+      if (mounted) setState(() => _loadingAll = false);
     }
   }
 
@@ -84,6 +110,12 @@ class _FolderScreenState extends State<FolderScreen> {
       appBar: AppBar(
         title: Text(widget.folder.title),
         actions: [
+          ViewButtons(
+            filter: app.filter,
+            sort: app.sort,
+            onFilter: (f) => app.filter = f,
+            onSort: (s) => app.sort = s,
+          ),
           IconButton(
             tooltip: 'Refresh',
             icon: const Icon(Icons.refresh),
@@ -123,19 +155,32 @@ class _FolderScreenState extends State<FolderScreen> {
   }
 
   Widget _content(AppState app, Listing listing) {
-    final media = app.showVideos
-        ? _media
-        : _media.where((m) => !m.isVideo).toList();
+    final sortAll = !app.sort.keepsLoadOrder;
+    if (sortAll && _more != null && !_loadingAll) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _loadAll());
+    }
+    final media = applyView(_media, app.filter, app.sort);
+    // A filter can leave the loaded pages nearly empty: keep fetching until
+    // the grid has something to show or the folder runs out.
+    if (app.filter != MediaFilter.all &&
+        _more != null &&
+        media.length < 60 &&
+        !_loadingAll) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _loadMore());
+    }
     if (listing.folders.isEmpty && media.isEmpty) {
+      if (_more != null || _loadingAll) {
+        return const Center(child: CircularProgressIndicator());
+      }
+      final what = app.filter == MediaFilter.all
+          ? 'photos or videos'
+          : app.filter.label.toLowerCase();
       return RefreshIndicator(
         onRefresh: _refresh,
         child: ListView(
-          children: const [
-            SizedBox(height: 160),
-            _Message(
-              icon: Icons.photo_library_outlined,
-              text: 'No photos or videos here',
-            ),
+          children: [
+            const SizedBox(height: 160),
+            _Message(icon: Icons.photo_library_outlined, text: 'No $what here'),
           ],
         ),
       );
@@ -145,6 +190,10 @@ class _FolderScreenState extends State<FolderScreen> {
       onRefresh: _refresh,
       child: CustomScrollView(
         slivers: [
+          if (_loadingAll)
+            const SliverToBoxAdapter(
+              child: LinearProgressIndicator(minHeight: 2),
+            ),
           SliverList.builder(
             itemCount: listing.folders.length,
             itemBuilder: (context, i) {
@@ -170,7 +219,7 @@ class _FolderScreenState extends State<FolderScreen> {
           MediaGridSliver(
             source: _source,
             items: media,
-            onNearEnd: _more == null ? null : _loadMore,
+            onNearEnd: _more == null || sortAll ? null : _loadMore,
           ),
         ],
       ),

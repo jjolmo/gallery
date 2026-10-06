@@ -38,11 +38,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ),
           SwitchListTile(
-            title: const Text('Show videos'),
-            value: app.showVideos,
-            onChanged: (v) => app.showVideos = v,
-          ),
-          SwitchListTile(
             title: const Text('Autoplay videos'),
             value: app.autoplayVideos,
             onChanged: (v) => app.autoplayVideos = v,
